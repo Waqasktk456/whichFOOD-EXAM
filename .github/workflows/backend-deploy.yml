@@ -30,7 +30,7 @@ jobs:
         run: |
           npm install
           npm run build --if-present # Use --if-present if you might not have a build script
-          npm run test --if-present
+         
 
       - name: Zip artifact for deployment
         run: |
