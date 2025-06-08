@@ -22,6 +22,7 @@ router.route('/stats')
 router.route('/recommendations')
   .get(protect, getFoodRecommendations);
 
+
 router.route('/:id')
   .get(protect, getMealLogById)
   .put(protect, updateMealLog)

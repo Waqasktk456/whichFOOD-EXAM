@@ -36,6 +36,14 @@ const UserSchema = new mongoose.Schema({
     required: true,
     comment: 'Weight in kg'
   },
+  bloodPressure: {
+    systolic: { type: Number },
+    diastolic: { type: Number }
+  },
+  bloodGlucose: {
+    type: Number,
+    comment: 'Blood glucose in mg/dL'
+  },
   activityLevel: {
     type: String,
     required: true,
@@ -115,4 +123,4 @@ UserSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.models.User || mongoose.model("User", UserSchema);

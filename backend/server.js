@@ -13,6 +13,7 @@ connectDB();
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 // Middleware
 app.use(express.json());
+//CI/CD Trigger
 
 // Define Routes
 app.use('/api/users', require('./routes/userRoutes'));

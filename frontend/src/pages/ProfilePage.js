@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Typography, Box, Paper, Grid, TextField, Button, Avatar, InputAdornment, MenuItem, Snackbar, Alert, Divider } from '@mui/material';
@@ -15,8 +14,8 @@ import { AuthContext } from '../context/AuthContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
-  borderRadius: theme.borderRadius?.medium || 8,
-  boxShadow: theme.shadows?.medium || '0 4px 20px rgba(0,0,0,0.1)',
+  borderRadius: 8,
+  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
   height: '100%',
 }));
 
@@ -24,7 +23,7 @@ const ProfileAvatar = styled(Avatar)(({ theme }) => ({
   width: 120,
   height: 120,
   margin: '0 auto',
-  border: `4px solid ${theme.colors?.primary?.main || '#1976d2'}`,
+  border: `4px solid ${theme.palette.primary.main}`,
 }));
 
 const ProfilePage = () => {
@@ -38,10 +37,8 @@ const ProfilePage = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [loading, setLoading] = useState(true);
 
-  // Fetch user data on mount
   useEffect(() => {
     if (!token) {
-      // Redirect to login if not authenticated
       navigate('/login');
       return;
     }
@@ -50,17 +47,19 @@ const ProfilePage = () => {
       try {
         setLoading(true);
         const response = await axios.get('http://localhost:5000/api/users/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         setUserData(response.data);
-        setEditedData(response.data);
+        setEditedData({
+          ...response.data,
+          bloodPressureSystolic: response.data.bloodPressure?.systolic || '',
+          bloodPressureDiastolic: response.data.bloodPressure?.diastolic || '',
+          bloodGlucose: response.data.bloodGlucose || '',
+        });
       } catch (error) {
         setSnackbarMessage(error.response?.data?.message || 'Failed to fetch profile data');
         setSnackbarSeverity('error');
         setSnackbarOpen(true);
-        // If token is invalid, log out
         if (error.response?.status === 401) {
           logout();
           navigate('/login');
@@ -75,28 +74,41 @@ const ProfilePage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEditedData({
-      ...editedData,
-      [name]: value,
-    });
+    setEditedData({ ...editedData, [name]: value });
   };
 
   const handleArrayChange = (e, field) => {
     const { value } = e.target;
     setEditedData({
       ...editedData,
-      [field]: value.split(',').map(item => item.trim()).filter(item => item !== ''),
+      [field]: value.split(',').map(item => item.trim()).filter(item => item),
     });
   };
 
   const handleSave = async () => {
     try {
-      const response = await axios.put('http://localhost:5000/api/users/profile', editedData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const requestData = {
+        ...editedData,
+        bloodPressure: {
+          systolic: editedData.bloodPressureSystolic ? Number(editedData.bloodPressureSystolic) : undefined,
+          diastolic: editedData.bloodPressureDiastolic ? Number(editedData.bloodPressureDiastolic) : undefined,
         },
+        bloodGlucose: editedData.bloodGlucose ? Number(editedData.bloodGlucose) : undefined,
+      };
+      delete requestData.bloodPressureSystolic;
+      delete requestData.bloodPressureDiastolic;
+
+      const response = await axios.put('http://localhost:5000/api/users/profile', requestData, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+
       setUserData(response.data);
+      setEditedData({
+        ...response.data,
+        bloodPressureSystolic: response.data.bloodPressure?.systolic || '',
+        bloodPressureDiastolic: response.data.bloodPressure?.diastolic || '',
+        bloodGlucose: response.data.bloodGlucose || '',
+      });
       setIsEditing(false);
       setSnackbarMessage('Profile updated successfully!');
       setSnackbarSeverity('success');
@@ -113,7 +125,12 @@ const ProfilePage = () => {
   };
 
   const handleCancel = () => {
-    setEditedData({ ...userData });
+    setEditedData({
+      ...userData,
+      bloodPressureSystolic: userData.bloodPressure?.systolic || '',
+      bloodPressureDiastolic: userData.bloodPressure?.diastolic || '',
+      bloodGlucose: userData.bloodGlucose || '',
+    });
     setIsEditing(false);
   };
 
@@ -130,9 +147,7 @@ const ProfilePage = () => {
     );
   }
 
-  if (!userData) {
-    return null; // Or redirect to login
-  }
+  if (!userData) return null;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -141,7 +156,6 @@ const ProfilePage = () => {
       </Typography>
 
       <Grid container spacing={3}>
-        {/* Profile Summary */}
         <Grid item xs={12} md={4}>
           <StyledPaper>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
@@ -209,7 +223,6 @@ const ProfilePage = () => {
           </StyledPaper>
         </Grid>
 
-        {/* Profile Details */}
         <Grid item xs={12} md={8}>
           <StyledPaper>
             {isEditing ? (
@@ -261,9 +274,7 @@ const ProfilePage = () => {
                       type="number"
                       value={editedData.age || ''}
                       onChange={handleChange}
-                      InputProps={{
-                        inputProps: { min: 18, max: 100 }
-                      }}
+                      inputProps={{ min: 18, max: 100 }}
                     />
                   </Grid>
 
@@ -320,6 +331,42 @@ const ProfilePage = () => {
                     />
                   </Grid>
 
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Systolic BP (mmHg)"
+                      name="bloodPressureSystolic"
+                      type="number"
+                      value={editedData.bloodPressureSystolic || ''}
+                      onChange={handleChange}
+                      inputProps={{ min: 50, max: 250 }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Diastolic BP (mmHg)"
+                      name="bloodPressureDiastolic"
+                      type="number"
+                      value={editedData.bloodPressureDiastolic || ''}
+                      onChange={handleChange}
+                      inputProps={{ min: 30, max: 150 }}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Blood Glucose (mg/dL)"
+                      name="bloodGlucose"
+                      type="number"
+                      value={editedData.bloodGlucose || ''}
+                      onChange={handleChange}
+                      inputProps={{ min: 20, max: 500 }}
+                    />
+                  </Grid>
+
                   <Grid item xs={12} sm={6}>
                     <TextField
                       select
@@ -329,11 +376,11 @@ const ProfilePage = () => {
                       value={editedData.activityLevel || ''}
                       onChange={handleChange}
                     >
-                      <MenuItem value="sedentary">Sedentary (little or no exercise)</MenuItem>
-                      <MenuItem value="light">Light (exercise 1-3 days/week)</MenuItem>
-                      <MenuItem value="moderate">Moderate (exercise 3-5 days/week)</MenuItem>
-                      <MenuItem value="active">Active (exercise 6-7 days/week)</MenuItem>
-                      <MenuItem value="very_active">Very Active (hard exercise daily)</MenuItem>
+                      <MenuItem value="sedentary">Sedentary</MenuItem>
+                      <MenuItem value="light">Light</MenuItem>
+                      <MenuItem value="moderate">Moderate</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="very_active">Very Active</MenuItem>
                     </TextField>
                   </Grid>
 
@@ -345,9 +392,7 @@ const ProfilePage = () => {
                       type="number"
                       value={editedData.targetWeight || ''}
                       onChange={handleChange}
-                      InputProps={{
-                        inputProps: { min: 30, max: 300 },
-                      }}
+                      inputProps={{ min: 30, max: 300 }}
                     />
                   </Grid>
 
@@ -468,6 +513,26 @@ const ProfilePage = () => {
                     </Typography>
                   </Grid>
 
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Blood Pressure
+                    </Typography>
+                    <Typography variant="body1">
+                      {userData.bloodPressure?.systolic && userData.bloodPressure?.diastolic 
+                        ? `${userData.bloodPressure.systolic}/${userData.bloodPressure.diastolic} mmHg`
+                        : 'Not set'}
+                    </Typography>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Blood Glucose
+                    </Typography>
+                    <Typography variant="body1">
+                      {userData.bloodGlucose ? `${userData.bloodGlucose} mg/dL` : 'Not set'}
+                    </Typography>
+                  </Grid>
+
                   <Grid item xs={12} sm={6}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Activity Level
@@ -500,11 +565,7 @@ const ProfilePage = () => {
                     </Typography>
                     <Typography variant="body1">
                       {userData.allergies?.length > 0 
-                        ? userData.allergies.map(allergy => (
-                            <span key={allergy} style={{ textTransform: 'capitalize' }}>
-                              {allergy}{', '}
-                            </span>
-                          ))
+                        ? userData.allergies.join(', ')
                         : 'None'}
                     </Typography>
                   </Grid>
@@ -515,11 +576,7 @@ const ProfilePage = () => {
                     </Typography>
                     <Typography variant="body1">
                       {userData.dietaryRestrictions?.length > 0 
-                        ? userData.dietaryRestrictions.map(restriction => (
-                            <span key={restriction} style={{ textTransform: 'capitalize' }}>
-                              {restriction}{', '}
-                            </span>
-                          ))
+                        ? userData.dietaryRestrictions.join(', ')
                         : 'None'}
                     </Typography>
                   </Grid>
@@ -538,11 +595,7 @@ const ProfilePage = () => {
                     </Typography>
                     <Typography variant="body1">
                       {userData.healthConditions?.length > 0 
-                        ? userData.healthConditions.map(condition => (
-                            <span key={condition} style={{ textTransform: 'capitalize' }}>
-                              {condition}{', '}
-                            </span>
-                          ))
+                        ? userData.healthConditions.join(', ')
                         : 'None'}
                     </Typography>
                   </Grid>
@@ -553,11 +606,7 @@ const ProfilePage = () => {
                     </Typography>
                     <Typography variant="body1">
                       {userData.medications?.length > 0 
-                        ? userData.medications.map(medication => (
-                            <span key={medication} style={{ textTransform: 'capitalize' }}>
-                              {medication}{', '}
-                            </span>
-                          ))
+                        ? userData.medications.join(', ')
                         : 'None'}
                     </Typography>
                   </Grid>

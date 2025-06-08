@@ -1,10 +1,8 @@
 const asyncHandler = require('../utils/asyncHandler');
 const User = require('../models/User');
+const HealthMetric = require('../models/HealthMetric');
 const generateToken = require('../utils/generateToken');
 
-// @desc    Register a new user
-// @route   POST /api/users
-// @access  Public
 const registerUser = asyncHandler(async (req, res) => {
   const { 
     name, 
@@ -13,7 +11,9 @@ const registerUser = asyncHandler(async (req, res) => {
     age, 
     gender, 
     height, 
-    weight, 
+    weight,
+    bloodPressure,
+    bloodGlucose,
     activityLevel,
     targetWeight,
     allergies,
@@ -22,7 +22,8 @@ const registerUser = asyncHandler(async (req, res) => {
     medications
   } = req.body;
 
-  // Check if user already exists
+  console.log('Received req.body:', JSON.stringify(req.body, null, 2));
+
   const userExists = await User.findOne({ email });
 
   if (userExists) {
@@ -30,7 +31,6 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('User already exists');
   }
 
-  // Create new user
   const user = await User.create({
     name,
     email,
@@ -39,16 +39,51 @@ const registerUser = asyncHandler(async (req, res) => {
     gender,
     height,
     weight,
+    bloodPressure: bloodPressure && bloodPressure.systolic && bloodPressure.diastolic ? {
+      systolic: Number(bloodPressure.systolic),
+      diastolic: Number(bloodPressure.diastolic)
+    } : null,
+    bloodGlucose: bloodGlucose && !isNaN(bloodGlucose) ? Number(bloodGlucose) : null,
     activityLevel,
-    targetWeight,
-    allergies: allergies || [],
-    dietaryRestrictions: dietaryRestrictions || [],
-    healthConditions: healthConditions || [],
-    medications: medications || []
+    targetWeight: targetWeight && !isNaN(targetWeight) ? Number(targetWeight) : null,
+    allergies: allergies && Array.isArray(allergies) ? allergies : [],
+    dietaryRestrictions: dietaryRestrictions && Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [],
+    healthConditions: healthConditions && Array.isArray(healthConditions) ? healthConditions : [],
+    medications: medications && Array.isArray(medications) ? medications : []
   });
 
+  console.log('Created user:', JSON.stringify(user.toObject(), null, 2));
+
   if (user) {
-    // Calculate health metrics
+    // Save health metrics
+    if (bloodPressure?.systolic && bloodPressure?.diastolic && !isNaN(bloodPressure.systolic) && !isNaN(bloodPressure.diastolic)) {
+      await HealthMetric.create({
+        user: user._id,
+        type: 'blood_pressure',
+        value: { systolic: Number(bloodPressure.systolic), diastolic: Number(bloodPressure.diastolic) },
+        unit: 'mmHg',
+        timestamp: new Date(),
+      });
+    }
+    if (bloodGlucose && !isNaN(bloodGlucose)) {
+      await HealthMetric.create({
+        user: user._id,
+        type: 'blood_glucose',
+        value: Number(bloodGlucose),
+        unit: 'mg/dL',
+        timestamp: new Date(),
+      });
+    }
+    if (weight && !isNaN(weight)) {
+      await HealthMetric.create({
+        user: user._id,
+        type: 'weight',
+        value: Number(weight),
+        unit: 'kg',
+        timestamp: new Date(),
+      });
+    }
+
     const bmi = user.calculateBMI();
     const bmr = user.calculateBMR();
     const dailyCalories = user.calculateDailyCalories();
@@ -61,6 +96,8 @@ const registerUser = asyncHandler(async (req, res) => {
       gender: user.gender,
       height: user.height,
       weight: user.weight,
+      bloodPressure: user.bloodPressure,
+      bloodGlucose: user.bloodGlucose,
       activityLevel: user.activityLevel,
       targetWeight: user.targetWeight,
       allergies: user.allergies,
@@ -81,18 +118,12 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Auth user & get token
-// @route   POST /api/users/login
-// @access  Public
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // Find user by email
   const user = await User.findOne({ email });
 
-  // Check if user exists and password matches
   if (user && (await user.matchPassword(password))) {
-    // Calculate health metrics
     const bmi = user.calculateBMI();
     const bmr = user.calculateBMR();
     const dailyCalories = user.calculateDailyCalories();
@@ -105,6 +136,8 @@ const authUser = asyncHandler(async (req, res) => {
       gender: user.gender,
       height: user.height,
       weight: user.weight,
+      bloodPressure: user.bloodPressure,
+      bloodGlucose: user.bloodGlucose,
       activityLevel: user.activityLevel,
       targetWeight: user.targetWeight,
       allergies: user.allergies,
@@ -125,14 +158,10 @@ const authUser = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get user profile
-// @route   GET /api/users/profile
-// @access  Private
 const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
-    // Calculate health metrics
     const bmi = user.calculateBMI();
     const bmr = user.calculateBMR();
     const dailyCalories = user.calculateDailyCalories();
@@ -145,6 +174,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
       gender: user.gender,
       height: user.height,
       weight: user.weight,
+      bloodPressure: user.bloodPressure,
+      bloodGlucose: user.bloodGlucose,
       activityLevel: user.activityLevel,
       targetWeight: user.targetWeight,
       allergies: user.allergies,
@@ -164,9 +195,6 @@ const getUserProfile = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Update user profile
-// @route   PUT /api/users/profile
-// @access  Private
 const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
@@ -182,8 +210,17 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     if (req.body.gender) user.gender = req.body.gender;
     if (req.body.height) user.height = req.body.height;
     if (req.body.weight) user.weight = req.body.weight;
+    if (req.body.bloodPressure && req.body.bloodPressure.systolic && req.body.bloodPressure.diastolic) {
+      user.bloodPressure = {
+        systolic: Number(req.body.bloodPressure.systolic),
+        diastolic: Number(req.body.bloodPressure.diastolic)
+      };
+    }
+    if (req.body.bloodGlucose && !isNaN(req.body.bloodGlucose)) {
+      user.bloodGlucose = Number(req.body.bloodGlucose);
+    }
     if (req.body.activityLevel) user.activityLevel = req.body.activityLevel;
-    if (req.body.targetWeight) user.targetWeight = req.body.targetWeight;
+    if (req.body.targetWeight) user.targetWeight = Number(req.body.targetWeight);
     if (req.body.allergies) user.allergies = req.body.allergies;
     if (req.body.dietaryRestrictions) user.dietaryRestrictions = req.body.dietaryRestrictions;
     if (req.body.healthConditions) user.healthConditions = req.body.healthConditions;
@@ -192,7 +229,35 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
     const updatedUser = await user.save();
 
-    // Calculate health metrics
+    // Save health metrics
+    if (req.body.bloodPressure?.systolic && req.body.bloodPressure?.diastolic && !isNaN(req.body.bloodPressure.systolic) && !isNaN(req.body.bloodPressure.diastolic)) {
+      await HealthMetric.create({
+        user: user._id,
+        type: 'blood_pressure',
+        value: { systolic: Number(req.body.bloodPressure.systolic), diastolic: Number(req.body.bloodPressure.diastolic) },
+        unit: 'mmHg',
+        timestamp: new Date(),
+      });
+    }
+    if (req.body.bloodGlucose && !isNaN(req.body.bloodGlucose)) {
+      await HealthMetric.create({
+        user: user._id,
+        type: 'blood_glucose',
+        value: Number(req.body.bloodGlucose),
+        unit: 'mg/dL',
+        timestamp: new Date(),
+      });
+    }
+    if (req.body.weight && !isNaN(req.body.weight)) {
+      await HealthMetric.create({
+        user: user._id,
+        type: 'weight',
+        value: Number(req.body.weight),
+        unit: 'kg',
+        timestamp: new Date(),
+      });
+    }
+
     const bmi = updatedUser.calculateBMI();
     const bmr = updatedUser.calculateBMR();
     const dailyCalories = updatedUser.calculateDailyCalories();
@@ -205,6 +270,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       gender: updatedUser.gender,
       height: updatedUser.height,
       weight: updatedUser.weight,
+      bloodPressure: updatedUser.bloodPressure,
+      bloodGlucose: updatedUser.bloodGlucose,
       activityLevel: updatedUser.activityLevel,
       targetWeight: updatedUser.targetWeight,
       allergies: updatedUser.allergies,
