@@ -5,7 +5,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const path = require('path');
 
-// Initialize Express
+// Initialize Express backend
 const app = express();
 
 // Connect to Database
@@ -14,7 +14,7 @@ app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 // Middleware
 app.use(express.json());
 //CI/CD Trigger
-
+// new commit in backend
 // Define Routes
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/health', require('./routes/healthRoutes'));
@@ -41,5 +41,5 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server  is running on port ${PORT}`);
 });
