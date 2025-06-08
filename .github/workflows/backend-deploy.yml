@@ -1,0 +1,79 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy Node.js app to Azure Web App - whichfood-backend
+
+on:
+  push:
+    branches:
+      - main
+    paths: # IMPORTANT: This restricts the workflow to changes in the backend folder
+      - 'backend/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.x' # Or your desired Node.js version, e.g., '18.x'
+
+      - name: npm install, build, and test
+        working-directory: backend # <<--- CRITICAL: Run commands inside the backend folder
+        run: |
+          npm install
+          npm run build --if-present # Use --if-present if you might not have a build script
+          npm run test --if-present
+
+      - name: Zip artifact for deployment
+        run: |
+          cd backend # Change into the backend directory
+          zip -r ../release.zip ./* # Zip its contents, save to parent directory
+        # The 'release.zip' will now be at the root of the workflow's workspace
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app
+          path: release.zip # Path to the zipped artifact
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Production' # You can set up GitHub Environments for this if you want
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write # <<--- CRITICAL: Required for OpenID Connect (OIDC) authentication
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }} # Use the secret name you created
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }} # Use the secret name you created
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} # Use the secret name you created
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'whichfood-backend' # Ensure this matches your Azure App Service name
+          slot-name: 'Production' # Default slot, usually correct
+          package: . # The unzipped contents are now in the current directory
