@@ -6,7 +6,7 @@ import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import LocalDiningIcon from '@mui/icons-material/LocalDining';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import api from '../services/api';
+import api from '../utils/api';
 
 // Styled components
 const StyledPaper = styled(Paper)(({ theme }) => ({
