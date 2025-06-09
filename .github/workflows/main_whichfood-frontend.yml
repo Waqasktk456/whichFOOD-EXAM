@@ -15,6 +15,13 @@ jobs:
       id-token: write # CRUCIAL for OpenID Connect (OIDC) authentication
       contents: read # Required for actions/checkout
 
+    # THIS IS THE CRITICAL PART: ADD OR VERIFY THIS 'environment' BLOCK
+    environment: # <--- THIS LINE (must be directly under 'jobs: build-and-deploy:')
+      name: 'Production' # <--- AND THIS LINE (indented under 'environment:')
+      # You can optionally add a URL here, but it's not required for login:
+      # url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,26 +39,20 @@ jobs:
         working-directory: ./frontend
         env:
           REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
-          # Keep CI: false if you want to ignore ESLint warnings during build
-          CI: false
+          CI: false # Keep this if you want to ignore ESLint warnings during build
         run: npm run build
 
-      # --- AZURE LOGIN STEP (REQUIRED FOR FRONTEND DEPLOYMENT TOO) ---
       - name: Azure Login
-        uses: azure/login@v2 # Using v2 for consistency with backend, or v1 is fine too
+        uses: azure/login@v2
         with:
-          # These secrets must be created in your GitHub repository settings
-          # and should hold the Client ID, Tenant ID, and Subscription ID
-          # of the Azure AD App Registration created for frontend deployments.
-          # YOU MIGHT USE THE *SAME* APP REGISTRATION AS BACKEND, OR A SEPARATE ONE.
-          # If using the same, the secrets will be the same values as your backend.
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2 # v2 is fine, v3 is also available
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
         with:
-          app-name: 'whichfood-frontend' # Ensure this matches your Azure Web App name
+          app-name: 'whichfood-frontend'
           slot-name: 'Production'
           package: ./frontend/build
