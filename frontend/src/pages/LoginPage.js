@@ -8,7 +8,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const BACKEND_URL='whichfood-backend-g7d4fjbth7gbgubz.centralindia-01.azurewebsites.net'
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -48,7 +48,7 @@ const LoginPage = () => {
 
     try {
       // Make API call to login
-      const response = await axios.post(`whichfood-backend-g7d4fjbth7gbgubz.centralindia-01.azurewebsites.net/api/users/login`, {
+      const response = await axios.post(`${BACKEND_URL}/api/users/login`, {
         email,
         password,
       });
