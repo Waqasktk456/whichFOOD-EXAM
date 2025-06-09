@@ -20,6 +20,9 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/health', require('./routes/healthRoutes'));
 app.use('/api/meals', require('./routes/mealRoutes'));
 app.use('/api/food', require('./routes/foodRoutes'));
+app.use('/',(req,res)=>{
+  res.send("server is running")
+})
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

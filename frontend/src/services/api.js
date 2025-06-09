@@ -1,7 +1,8 @@
 import axios from "axios";
 
 // Define the base URL for the backend API
-const API_URL = "http://localhost:5000/api"; // Adjust if your backend runs on a different port/host
+// Use process.env.REACT_APP_API_URL for environment variable
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 // Create an Axios instance
 const api = axios.create({
@@ -39,12 +40,11 @@ api.interceptors.response.use(
       // Clear token and user data
       localStorage.removeItem("token");
       localStorage.removeItem("user"); // Assuming user data is also stored
-      // Redirect to login page (use window.location or router history)
-       window.location.href ='/login';
+      // Optionally, redirect to login page
+      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
 export default api;
-
