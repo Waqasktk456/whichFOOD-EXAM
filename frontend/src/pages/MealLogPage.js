@@ -27,7 +27,6 @@ const FoodCard = styled(Paper)(({ theme }) => ({
   justifyContent: 'space-between',
 }));
 
-
 const SectionPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2),
   borderRadius: theme.borderRadius?.medium || 8,
@@ -50,7 +49,6 @@ const MealLogPage = () => {
     currentIntake: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
     nutritionNeeds: { calories: 2000, protein: 75, carbs: 275, fat: 65, fiber: 30 },
   });
-
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingLog, setLoadingLog] = useState(false);
   const [loadingSummary, setLoadingSummary] = useState(true);
@@ -60,26 +58,60 @@ const MealLogPage = () => {
 
   useEffect(() => {
     const fetchInitialData = async () => {
+      if (!token) {
+        setSnackbarMessage('Please log in to view meal data');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        setLoadingSummary(false);
+        return;
+      }
+
       setLoadingSummary(true);
       try {
         const logsResponse = await api.get('/meals');
-        setMealLogs(logsResponse.data || []);
+        // Ensure mealLogs is an array
+        if (!Array.isArray(logsResponse.data)) {
+          console.warn('Unexpected /meals response:', logsResponse.data);
+          setMealLogs([]);
+        } else {
+          setMealLogs(logsResponse.data);
+        }
 
         const summaryResponse = await api.get('/meals/stats');
-        setNutritionSummary(summaryResponse.data || nutritionSummary);
+        // Validate summary response
+        if (!summaryResponse.data || typeof summaryResponse.data !== 'object') {
+          console.warn('Unexpected /meals/stats response:', summaryResponse.data);
+          setNutritionSummary(nutritionSummary); // Fallback to default
+        } else {
+          setNutritionSummary({
+            currentIntake: {
+              calories: Number(summaryResponse.data.currentIntake?.calories) || 0,
+              protein: Number(summaryResponse.data.currentIntake?.protein) || 0,
+              carbs: Number(summaryResponse.data.currentIntake?.carbs) || 0,
+              fat: Number(summaryResponse.data.currentIntake?.fat) || 0,
+              fiber: Number(summaryResponse.data.currentIntake?.fiber) || 0,
+            },
+            nutritionNeeds: {
+              calories: Number(summaryResponse.data.nutritionNeeds?.calories) || 2000,
+              protein: Number(summaryResponse.data.nutritionNeeds?.protein) || 75,
+              carbs: Number(summaryResponse.data.nutritionNeeds?.carbs) || 275,
+              fat: Number(summaryResponse.data.nutritionNeeds?.fat) || 65,
+              fiber: Number(summaryResponse.data.nutritionNeeds?.fiber) || 30,
+            },
+          });
+        }
       } catch (error) {
-        console.error("Error fetching initial data:", error);
-        setSnackbarMessage(error.response?.data?.message || 'Failed to load meal data');
+        console.error('Error fetching initial data:', error);
+        setSnackbarMessage(error.response?.data?.message || 'Failed to load meal data. Please try again.');
         setSnackbarSeverity('error');
         setSnackbarOpen(true);
+        setMealLogs([]); // Reset to prevent rendering issues
       } finally {
         setLoadingSummary(false);
       }
     };
 
-    if (token) {
-      fetchInitialData();
-    }
+    fetchInitialData();
   }, [token]);
 
   const chartData = {
@@ -105,14 +137,14 @@ const MealLogPage = () => {
       title: { display: true, text: 'Macronutrient Distribution (grams)' },
       tooltip: {
         callbacks: {
-          label: function(context) {
+          label: function (context) {
             let label = context.label || '';
             if (label) label += ': ';
             if (context.parsed !== null) label += context.parsed.toFixed(1) + 'g';
             return label;
-          }
-        }
-      }
+          },
+        },
+      },
     },
   };
 
@@ -127,17 +159,25 @@ const MealLogPage = () => {
     setSearchResults([]);
     try {
       const response = await api.get('/food/search', {
-        params: { query: searchQuery }
+        params: { query: searchQuery },
       });
-      console.log("Search Response:", response.data);
-      setSearchResults(response.data.foods || []);
-      if (!response.data.foods || response.data.foods.length === 0) {
+      // Ensure searchResults is an array
+      if (!Array.isArray(response.data.foods)) {
+        console.warn('Unexpected /food/search response:', response.data.foods);
+        setSearchResults([]);
         setSnackbarMessage('No foods found. Try a different search term.');
         setSnackbarSeverity('info');
         setSnackbarOpen(true);
+      } else {
+        setSearchResults(response.data.foods);
+        if (response.data.foods.length === 0) {
+          setSnackbarMessage('No foods found. Try a different search term.');
+          setSnackbarSeverity('info');
+          setSnackbarOpen(true);
+        }
       }
     } catch (error) {
-      console.error("Search error:", error);
+      console.error('Search error:', error);
       setSnackbarMessage(error.response?.data?.message || 'Failed to search foods');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
@@ -147,7 +187,7 @@ const MealLogPage = () => {
   };
 
   const handleAddFood = (food) => {
-    const defaultMeasure = food.measures.find(m => m.label.toLowerCase() === 'serving') || food.measures[0];
+    const defaultMeasure = food.measures?.find((m) => m.label.toLowerCase() === 'serving') || food.measures?.[0];
     if (!defaultMeasure) {
       setSnackbarMessage(`Could not find a default measure for ${food.name}`);
       setSnackbarSeverity('error');
@@ -155,15 +195,18 @@ const MealLogPage = () => {
       return;
     }
 
-    setSelectedFoods([...selectedFoods, {
-      foodId: food.id,
-      name: food.name,
-      quantity: 1,
-      measureURI: defaultMeasure.uri,
-      measureLabel: defaultMeasure.label,
-      nutrients: food.nutrients,
-      availableMeasures: food.measures
-    }]);
+    setSelectedFoods([
+      ...selectedFoods,
+      {
+        foodId: food.id,
+        name: food.name,
+        quantity: 1,
+        measureURI: defaultMeasure.uri,
+        measureLabel: defaultMeasure.label,
+        nutrients: food.nutrients || {},
+        availableMeasures: Array.isArray(food.measures) ? food.measures : [],
+      },
+    ]);
     setSearchResults([]);
     setSearchQuery('');
   };
@@ -191,7 +234,7 @@ const MealLogPage = () => {
     try {
       const payload = {
         mealType,
-        foods: selectedFoods.map(food => {
+        foods: selectedFoods.map((food) => {
           const quantity = food.quantity || 1;
           const adjustedNutrients = {
             ENERC_KCAL: (food.nutrients?.ENERC_KCAL || 0) * quantity,
@@ -213,15 +256,30 @@ const MealLogPage = () => {
       };
 
       const response = await api.post('/meals', payload);
-      setMealLogs(prevLogs => {
+      setMealLogs((prevLogs) => {
         const newLog = response.data;
-        const existingMeals = prevLogs.filter(log => log.mealType !== newLog.mealType);
-        const sameTypeMeals = prevLogs.filter(log => log.mealType === newLog.mealType);
+        const existingMeals = Array.isArray(prevLogs) ? prevLogs.filter((log) => log.mealType !== newLog.mealType) : [];
+        const sameTypeMeals = Array.isArray(prevLogs) ? prevLogs.filter((log) => log.mealType === newLog.mealType) : [];
         return [newLog, ...sameTypeMeals, ...existingMeals];
       });
 
       const summaryResponse = await api.get('/meals/stats');
-      setNutritionSummary(summaryResponse.data || nutritionSummary);
+      setNutritionSummary({
+        currentIntake: {
+          calories: Number(summaryResponse.data?.currentIntake?.calories) || 0,
+          protein: Number(summaryResponse.data?.currentIntake?.protein) || 0,
+          carbs: Number(summaryResponse.data?.currentIntake?.carbs) || 0,
+          fat: Number(summaryResponse.data?.currentIntake?.fat) || 0,
+          fiber: Number(summaryResponse.data?.currentIntake?.fiber) || 0,
+        },
+        nutritionNeeds: {
+          calories: Number(summaryResponse.data?.nutritionNeeds?.calories) || 2000,
+          protein: Number(summaryResponse.data?.nutritionNeeds?.protein) || 75,
+          carbs: Number(summaryResponse.data?.nutritionNeeds?.carbs) || 275,
+          fat: Number(summaryResponse.data?.nutritionNeeds?.fat) || 65,
+          fiber: Number(summaryResponse.data?.nutritionNeeds?.fiber) || 30,
+        },
+      });
 
       setSelectedFoods([]);
       setMealType('');
@@ -229,7 +287,7 @@ const MealLogPage = () => {
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
     } catch (error) {
-      console.error("Meal logging error:", error);
+      console.error('Meal logging error:', error);
       setSnackbarMessage(error.response?.data?.message || 'Failed to log meal');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
@@ -238,18 +296,25 @@ const MealLogPage = () => {
     }
   };
 
-  const selectedFoodsTotalCalories = selectedFoods.reduce((sum, food) => {
-    const caloriesPerUnit = food.nutrients?.ENERC_KCAL || 0;
-    return sum + (caloriesPerUnit * food.quantity);
-  }, 0);
+  const selectedFoodsTotalCalories = Array.isArray(selectedFoods)
+    ? selectedFoods.reduce((sum, food) => {
+        const caloriesPerUnit = Number(food.nutrients?.ENERC_KCAL) || 0;
+        return sum + caloriesPerUnit * (Number(food.quantity) || 1);
+      }, 0)
+    : 0;
 
-  const groupedMeals = mealLogs.reduce((acc, meal) => {
-    if (!acc[meal.mealType]) {
-      acc[meal.mealType] = [];
-    }
-    acc[meal.mealType].push(meal);
-    return acc;
-  }, {});
+  const groupedMeals = Array.isArray(mealLogs)
+    ? mealLogs.reduce(
+        (acc, meal) => {
+          if (!acc[meal.mealType]) {
+            acc[meal.mealType] = [];
+          }
+          acc[meal.mealType].push(meal);
+          return acc;
+        },
+        {}
+      )
+    : {};
 
   return (
     <Container maxWidth="lg" sx={{ py: 4, minHeight: 'calc(100vh - 64px)' }}>
@@ -288,7 +353,12 @@ const MealLogPage = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     fullWidth
                     margin="dense"
-                    onKeyPress={(e) => { if (e.key === 'Enter') { handleSearch(); e.preventDefault(); } }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearch();
+                        e.preventDefault();
+                      }
+                    }}
                   />
                   <Button
                     variant="contained"
@@ -300,7 +370,7 @@ const MealLogPage = () => {
                   </Button>
                 </Box>
 
-                {searchResults.length > 0 && (
+                {Array.isArray(searchResults) && searchResults.length > 0 && (
                   <Paper variant="outlined" sx={{ mt: 1, maxHeight: 150, overflowY: 'auto', p: 1 }}>
                     <Typography variant="subtitle2" gutterBottom sx={{ pl: 1 }}>
                       Search Results
@@ -317,7 +387,9 @@ const MealLogPage = () => {
                         >
                           <ListItemText
                             primary={food.name}
-                            secondary={`${food.nutrients?.ENERC_KCAL?.toFixed(0) || 0} kcal | P:${food.nutrients?.PROCNT?.toFixed(1) || 0}g | C:${food.nutrients?.CHOCDF?.toFixed(1) || 0}g | F:${food.nutrients?.FAT?.toFixed(1) || 0}g`}
+                            secondary={`${Number(food.nutrients?.ENERC_KCAL || 0).toFixed(0)} kcal | P:${
+                              Number(food.nutrients?.PROCNT || 0).toFixed(1)
+                            }g | C:${Number(food.nutrients?.CHOCDF || 0).toFixed(1)}g | F:${Number(food.nutrients?.FAT || 0).toFixed(1)}g`}
                           />
                         </ListItem>
                       ))}
@@ -325,7 +397,7 @@ const MealLogPage = () => {
                   </Paper>
                 )}
 
-                {selectedFoods.length > 0 && (
+                {Array.isArray(selectedFoods) && selectedFoods.length > 0 && (
                   <Box sx={{ mt: 1 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Selected Foods for {mealType || 'Meal'}
@@ -333,9 +405,14 @@ const MealLogPage = () => {
                     {selectedFoods.map((food, index) => (
                       <FoodCard key={`${food.foodId}-${index}`}>
                         <Box sx={{ flexGrow: 1, mr: 1 }}>
-                          <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{food.name}</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                            {food.name}
+                          </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {((food.nutrients?.ENERC_KCAL || 0) * food.quantity).toFixed(0)} kcal | P: {((food.nutrients?.PROCNT || 0) * food.quantity).toFixed(1)}g | C: {((food.nutrients?.CHOCDF || 0) * food.quantity).toFixed(1)}g | F: {((food.nutrients?.FAT || 0) * food.quantity).toFixed(1)}g
+                            {((food.nutrients?.ENERC_KCAL || 0) * (food.quantity || 1)).toFixed(0)} kcal | P:{' '}
+                            {((food.nutrients?.PROCNT || 0) * (food.quantity || 1)).toFixed(1)}g | C:{' '}
+                            {((food.nutrients?.CHOCDF || 0) * (food.quantity || 1)).toFixed(1)}g | F:{' '}
+                            {((food.nutrients?.FAT || 0) * (food.quantity || 1)).toFixed(1)}g
                           </Typography>
                         </Box>
                         <TextField
@@ -345,22 +422,16 @@ const MealLogPage = () => {
                           value={food.quantity}
                           onChange={(e) => handleQuantityChange(index, e.target.value)}
                           InputProps={{ inputProps: { min: 0.1, step: 0.1 } }}
-                          sx={{ width: 100, mx: 1 }} // Increased width from 70 to 100
+                          sx={{ width: 100, mx: 1 }}
                         />
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleRemoveFood(index)}
-                        >
+                        <IconButton size="small" color="error" onClick={() => handleRemoveFood(index)}>
                           <RemoveCircleOutlineIcon />
                         </IconButton>
                       </FoodCard>
                     ))}
 
                     <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="subtitle1">
-                        Total: {selectedFoodsTotalCalories.toFixed(0)} kcal
-                      </Typography>
+                      <Typography variant="subtitle1">Total: {selectedFoodsTotalCalories.toFixed(0)} kcal</Typography>
                       <Button
                         variant="contained"
                         color="primary"
@@ -390,10 +461,10 @@ const MealLogPage = () => {
                 <>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="subtitle1">
-                      Total Calories: {nutritionSummary.currentIntake.calories?.toFixed(0) || 0} kcal
+                      Total Calories: {Number(nutritionSummary.currentIntake.calories || 0).toFixed(0)} kcal
                     </Typography>
                     <Typography variant="subtitle1" color="primary">
-                      Goal: {nutritionSummary.nutritionNeeds.calories?.toFixed(0) || 2000} kcal
+                      Goal: {Number(nutritionSummary.nutritionNeeds.calories || 2000).toFixed(0)} kcal
                     </Typography>
                   </Box>
 
@@ -403,19 +474,31 @@ const MealLogPage = () => {
 
                   <Grid container spacing={1}>
                     <Grid item xs={4} sx={{ textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">Protein</Typography>
-                      <Typography variant="h6">{nutritionSummary.currentIntake.protein?.toFixed(1) || 0}g</Typography>
-                      <Typography variant="caption" color="text.secondary">Goal: {nutritionSummary.nutritionNeeds.protein?.toFixed(0) || 75}g</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Protein
+                      </Typography>
+                      <Typography variant="h6">{Number(nutritionSummary.currentIntake.protein || 0).toFixed(1)}g</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Goal: {Number(nutritionSummary.nutritionNeeds.protein || 75).toFixed(0)}g
+                      </Typography>
                     </Grid>
                     <Grid item xs={4} sx={{ textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">Carbs</Typography>
-                      <Typography variant="h6">{nutritionSummary.currentIntake.carbs?.toFixed(1) || 0}g</Typography>
-                      <Typography variant="caption" color="text.secondary">Goal: {nutritionSummary.nutritionNeeds.carbs?.toFixed(0) || 275}g</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Carbs
+                      </Typography>
+                      <Typography variant="h6">{Number(nutritionSummary.currentIntake.carbs || 0).toFixed(1)}g</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Goal: {Number(nutritionSummary.nutritionNeeds.carbs || 275).toFixed(0)}g
+                      </Typography>
                     </Grid>
                     <Grid item xs={4} sx={{ textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">Fat</Typography>
-                      <Typography variant="h6">{nutritionSummary.currentIntake.fat?.toFixed(1) || 0}g</Typography>
-                      <Typography variant="caption" color="text.secondary">Goal: {nutritionSummary.nutritionNeeds.fat?.toFixed(0) || 65}g</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Fat
+                      </Typography>
+                      <Typography variant="h6">{Number(nutritionSummary.currentIntake.fat || 0).toFixed(1)}g</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Goal: {Number(nutritionSummary.nutritionNeeds.fat || 65).toFixed(0)}g
+                      </Typography>
                     </Grid>
                   </Grid>
                 </>
@@ -440,24 +523,33 @@ const MealLogPage = () => {
                       {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
                     </Typography>
                     <List dense sx={{ width: '100%' }}>
-                      {meals.map((meal) => (
-                        <Box key={meal._id} sx={{ mb: 1, width: '100%' }}>
-                          <ListItem disablePadding sx={{ pb: 0.5, width: '100%' }}>
-                            <ListItemText
-                              secondary={`Logged at ${new Date(meal.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | ~${(meal.totalNutrients?.ENERC_KCAL?.quantity || meal.totalNutrients?.ENERC_KCAL?.value || 0).toFixed(0)} kcal`}
-                            />
-                          </ListItem>
-                          {meal.foods.map((food, index) => (
-                            <ListItem key={index} dense sx={{ pl: 4, py: 0.2, width: '100%' }}>
+                      {Array.isArray(meals) &&
+                        meals.map((meal) => (
+                          <Box key={meal._id} sx={{ mb: 1, width: '100%' }}>
+                            <ListItem disablePadding sx={{ pb: 0.5, width: '100%' }}>
                               <ListItemText
-                                primary={`${food.quantity} ${food.measure} ${food.name}`}
-                                secondary={`~${((food.nutrients?.ENERC_KCAL?.value || 0) * food.quantity).toFixed(0)} kcal`}
-                                secondaryTypographyProps={{ fontSize: '0.8rem' }}
+                                secondary={`Logged at ${new Date(meal.date).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })} | ~${(
+                                  Number(meal.totalNutrients?.ENERC_KCAL?.quantity || meal.totalNutrients?.ENERC_KCAL?.value) || 0
+                                ).toFixed(0)} kcal`}
                               />
                             </ListItem>
-                          ))}
-                        </Box>
-                      ))}
+                            {Array.isArray(meal.foods) &&
+                              meal.foods.map((food, index) => (
+                                <ListItem key={index} dense sx={{ pl: 4, py: 0.2, width: '100%' }}>
+                                  <ListItemText
+                                    primary={`${Number(food.quantity || 1)} ${food.measure || ''} ${food.name}`}
+                                    secondary={`~${((Number(food.nutrients?.ENERC_KCAL?.value) || 0) * Number(food.quantity || 1)).toFixed(
+                                      0
+                                    )} kcal`}
+                                    secondaryTypographyProps={{ fontSize: '0.8rem' }}
+                                  />
+                                </ListItem>
+                              ))}
+                          </Box>
+                        ))}
                     </List>
                   </Box>
                 ))
