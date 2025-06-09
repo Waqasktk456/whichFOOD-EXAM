@@ -30,11 +30,13 @@ jobs:
 
       - name: Build frontend
         working-directory: ./frontend
+        env:
+          REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
         run: npm run build
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'whichfood-frontend' # ✅ your Azure frontend app name
+          app-name: 'whichfood-frontend'
           slot-name: 'Production'
           package: ./frontend/build
