@@ -7,7 +7,8 @@ import LockIcon from '@mui/icons-material/Lock';
 import PersonIcon from '@mui/icons-material/Person';
 import HeightIcon from '@mui/icons-material/Height';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import axios from 'axios';
+// REMOVE: import axios from 'axios'; // <--- REMOVE THIS LINE
+import api from '../utils/api'; // <--- ADD THIS LINE: Import your configured API instance
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -136,7 +137,9 @@ const RegisterPage = () => {
 
       console.log('Sending requestData:', JSON.stringify(requestData, null, 2));
 
-      const response = await axios.post('http://localhost:5000/api/users', requestData);
+      // *** CHANGE THIS LINE ***
+      // const response = await axios.post('http://localhost:5000/api/users', requestData);
+      const response = await api.post('/api/users', requestData); // <--- CORRECTED LINE: Use api.post with relative path!
 
       setSnackbarMessage('Registration successful! Redirecting to login...');
       setSnackbarSeverity('success');
@@ -506,14 +509,14 @@ const RegisterPage = () => {
         </Box>
       </StyledPaper>
 
-      <Snackbar 
-        open={snackbarOpen} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
         onClose={() => setSnackbarOpen(false)}
       >
-        <Alert 
-          onClose={() => setSnackbarOpen(false)} 
-          severity={snackbarSeverity} 
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
           sx={{ width: '100%' }}
         >
           {snackbarMessage}
