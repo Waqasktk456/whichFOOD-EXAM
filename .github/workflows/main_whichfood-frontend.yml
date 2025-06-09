@@ -15,10 +15,6 @@ jobs:
       id-token: write # CRUCIAL for OpenID Connect (OIDC) authentication
       contents: read # Required for actions/checkout
 
-    environment: # <--- ADD THIS LINE (at the job level)
-      name: 'Production' # <--- ADD THIS LINE (Matching your backend setup)
-      # You can add url: ${{ steps.deploy-to-webapp.outputs.webapp-url }} here too if you want.
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,20 +32,26 @@ jobs:
         working-directory: ./frontend
         env:
           REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
-          CI: false # Keep this if you want to ignore ESLint warnings during build
+          # Keep CI: false if you want to ignore ESLint warnings during build
+          CI: false
         run: npm run build
 
+      # --- AZURE LOGIN STEP (REQUIRED FOR FRONTEND DEPLOYMENT TOO) ---
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v2 # Using v2 for consistency with backend, or v1 is fine too
         with:
+          # These secrets must be created in your GitHub repository settings
+          # and should hold the Client ID, Tenant ID, and Subscription ID
+          # of the Azure AD App Registration created for frontend deployments.
+          # YOU MIGHT USE THE *SAME* APP REGISTRATION AS BACKEND, OR A SEPARATE ONE.
+          # If using the same, the secrets will be the same values as your backend.
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp # <--- Add an ID so you can reference its output for environment URL
-        uses: azure/webapps-deploy@v2
+        uses: azure/webapps-deploy@v2 # v2 is fine, v3 is also available
         with:
-          app-name: 'whichfood-frontend'
+          app-name: 'whichfood-frontend' # Ensure this matches your Azure Web App name
           slot-name: 'Production'
           package: ./frontend/build
