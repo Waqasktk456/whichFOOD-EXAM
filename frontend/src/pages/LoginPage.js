@@ -16,7 +16,7 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   flexDirection: 'column',
   alignItems: 'center',
   borderRadius: theme.borderRadius?.medium || 8,
-  boxShadow: theme.shadows?.medium || '0 4px 20px rgba(0,0,0,0.1)',
+  boxShadow: theme.shadows?.medium || '0 5px 20px rgba(0,0,0,0.1)',
 }));
 
 const StyledAvatar = styled(Avatar)(({ theme }) => ({
