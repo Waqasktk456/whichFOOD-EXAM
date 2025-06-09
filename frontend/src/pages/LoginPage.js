@@ -8,6 +8,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -47,7 +48,7 @@ const LoginPage = () => {
 
     try {
       // Make API call to login
-      const response = await axios.post('http://localhost:5000/api/users/login', {
+      const response = await axios.post('API_BASE_URL/api/users/login', {
         email,
         password,
       });
