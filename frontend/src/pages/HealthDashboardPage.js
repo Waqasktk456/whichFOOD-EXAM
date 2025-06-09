@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Typography, Box, Paper, Grid, Button, CircularProgress, Alert, Snackbar } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Line } from 'react-chartjs-2';
+import api from '../utils/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -79,7 +80,7 @@ const HealthDashboardPage = () => {
   // Fetch user profile
   const fetchUserProfile = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/users/profile', {
+      const response = await api.get('/api/users/profile', {
         headers: { Authorization: `Bearer ${token}` },
       } );
       setUserProfile(response.data);
@@ -91,7 +92,7 @@ const HealthDashboardPage = () => {
   // Fetch stats for a single metric type
   const fetchStats = useCallback(async (metricType) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/health/stats', {
+      const response = await api.get('/api/health/stats', {
         params: { type: metricType, period: 'month' },
         headers: { Authorization: `Bearer ${token}` },
       } );
@@ -105,7 +106,7 @@ const HealthDashboardPage = () => {
   // Fetch all metrics of a specific type (not just stats)
   const fetchAllMetrics = useCallback(async (metricType) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/health', {
+      const response = await api.get('/api/health', {
         params: { type: metricType },
         headers: { Authorization: `Bearer ${token}` },
       } );
@@ -119,7 +120,7 @@ const HealthDashboardPage = () => {
   // Fetch initial metric value (earliest HealthMetric entry)
   const fetchInitialMetric = useCallback(async (metricType) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/health', {
+      const response = await api.get('/api/health', {
         params: { type: metricType },
         headers: { Authorization: `Bearer ${token}` },
       } );
