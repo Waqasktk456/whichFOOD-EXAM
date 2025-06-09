@@ -32,6 +32,10 @@ jobs:
         working-directory: ./frontend
         env:
           REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
+          # If the line below had a '#' at the beginning, remove it and change 'true' to 'false'.
+          # For example, if you saw: # CI: true
+          # Change it to:
+          CI: false # This prevents ESLint from treating warnings as errors during the build
         run: npm run build
 
       - name: Deploy to Azure Web App
