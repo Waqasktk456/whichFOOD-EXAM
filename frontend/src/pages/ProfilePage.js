@@ -9,7 +9,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import LocalDiningIcon from '@mui/icons-material/LocalDining';
 import MedicalInformationIcon from '@mui/icons-material/MedicalInformation';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import axios from 'axios';
+import api from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -46,7 +46,7 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/users/profile', {
+        const response = await api.get('/api/users/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserData(response.data);
@@ -98,7 +98,7 @@ const ProfilePage = () => {
       delete requestData.bloodPressureSystolic;
       delete requestData.bloodPressureDiastolic;
 
-      const response = await axios.put('http://localhost:5000/api/users/profile', requestData, {
+      const response = await api.put('/api/users/profile', requestData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

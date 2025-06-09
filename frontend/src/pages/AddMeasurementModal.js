@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Box, Typography, TextField, Button, MenuItem, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
-import axios from 'axios';
+import api from '../utils/api';
+
 
 const style = {
   position: 'absolute',
@@ -74,7 +75,7 @@ const AddMeasurementModal = ({ open, onClose, onMeasurementAdded }) => {
       };
 
       // Save to HealthMetric
-      await axios.post('http://localhost:5000/api/health', requestData, {
+      await api.post('/api/health', requestData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -89,7 +90,7 @@ const AddMeasurementModal = ({ open, onClose, onMeasurementAdded }) => {
       }
 
       if (Object.keys(updateData).length > 0) {
-        await axios.put('http://localhost:5000/api/users/profile', updateData, {
+        await api.put('/api/users/profile', updateData, {
           headers: { Authorization: `Bearer ${token}` },
         });
       }
