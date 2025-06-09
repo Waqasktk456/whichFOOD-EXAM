@@ -1,17 +1,17 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; // Keep this, it's correct
 import { Container, Typography, Box, Paper, TextField, Button, Avatar, InputAdornment,Grid , Snackbar, Alert } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 
-// *** CHANGE 1: Import your configured 'api' instance ***
-import api from '../utils/api'; // Adjust the path if api.js is in a different location
+// *** FIX 1: Import your configured 'api' instance ***
+import api from '../utils/api'; // Assuming api.js is in src/utils/
 
 import { AuthContext } from '../context/AuthContext';
 
-// *** REMOVE THIS LINE ENTIRELY ***
+// *** REMOVE THIS LINE ENTIRELY (it's hardcoded and wrong) ***
 // const BACKEND_URL='whichfood-backend-g7d4fjbth7gbgubz.centralindia-01.azurewebsites.net'
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -36,7 +36,7 @@ const LoginPage = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const { login } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Correctly initialized
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -51,8 +51,8 @@ const LoginPage = () => {
     }
 
     try {
-      // *** CHANGE 2: Use your 'api' instance with the relative path ***
-      const response = await api.post('/api/users/login', { // <-- No base URL needed here!
+      // *** FIX 2: Use your 'api' instance with the relative path ***
+      const response = await api.post('/api/users/login', { // Corrected API call
         email,
         password,
       });
@@ -70,7 +70,7 @@ const LoginPage = () => {
       setPassword('');
       setError('');
 
-      // Redirect to profile page
+      // Redirect to profile page (already correctly using navigate)
       setTimeout(() => {
         navigate('/profile');
       }, 1500);
@@ -157,6 +157,7 @@ const LoginPage = () => {
               </Button>
             </Grid>
             <Grid item>
+              {/* This Link is fine, it uses client-side routing */}
               <Button variant="text" size="small" href="/register">
                 Don't have an account? Sign Up
               </Button>

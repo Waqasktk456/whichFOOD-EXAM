@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // *** ADD THIS LINE ***
 import { Container, Typography, Box, Paper, Grid, TextField, Button, Avatar, InputAdornment, MenuItem, Snackbar, Alert, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -7,8 +8,9 @@ import LockIcon from '@mui/icons-material/Lock';
 import PersonIcon from '@mui/icons-material/Person';
 import HeightIcon from '@mui/icons-material/Height';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-// REMOVE: import axios from 'axios'; // <--- REMOVE THIS LINE
-import api from '../utils/api'; // <--- ADD THIS LINE: Import your configured API instance
+// *** FIX 1: Import your configured 'api' instance ***
+// REMOVE: import axios from 'axios';
+import api from '../utils/api'; // Assuming api.js is in src/utils/
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -47,6 +49,7 @@ const RegisterPage = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const navigate = useNavigate(); // *** ADD THIS LINE ***
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -137,9 +140,9 @@ const RegisterPage = () => {
 
       console.log('Sending requestData:', JSON.stringify(requestData, null, 2));
 
-      // *** CHANGE THIS LINE ***
-      // const response = await axios.post('http://localhost:5000/api/users', requestData);
-      const response = await api.post('/api/users', requestData); // <--- CORRECTED LINE: Use api.post with relative path!
+      // *** FIX 2: Use your 'api' instance with the relative path ***
+      // REMOVE: const response = await axios.post('http://localhost:5000/api/users', requestData);
+      const response = await api.post('/api/users', requestData); // Corrected API call
 
       setSnackbarMessage('Registration successful! Redirecting to login...');
       setSnackbarSeverity('success');
@@ -164,8 +167,9 @@ const RegisterPage = () => {
       });
       setErrors({});
 
+      // *** FIX 3: Use navigate for client-side redirect ***
       setTimeout(() => {
-        window.location.href = '/login';
+        navigate('/login'); // Corrected redirect
       }, 1500);
     } catch (error) {
       console.error('Registration error:', error.response?.data || error.message);
@@ -501,6 +505,7 @@ const RegisterPage = () => {
 
           <Grid container justifyContent="flex-end">
             <Grid item>
+              {/* This Link is fine, it uses client-side routing */}
               <Button variant="text" size="small" href="/login">
                 Already have an account? Sign in
               </Button>
