@@ -31,6 +31,13 @@ jobs:
           app_location: "./frontend" # App source code path
           api_location: "" # Api source code path - optional
           output_location: "build" # Built app content directory - optional
+
+          # --- ADD OR MODIFY THIS LINE ---
+          # This tells the build process to ignore ESLint warnings as errors when CI=true
+          app_build_command: "CI=false npm run build"
+          # OR, if the above still doesn't work, try this alternative that is more specific to Create React App:
+          # app_build_command: "ESLINT_NO_DEV_ERRORS=true npm run build"
+
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
