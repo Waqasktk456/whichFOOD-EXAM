@@ -1,0 +1,45 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - main # Or your default branch like 'master' or 'development'
+    paths:
+      - 'frontend/**' # Trigger only when changes are pushed to the frontend directory
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest # Or your preferred runner environment
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use the Node.js version compatible with your frontend project
+
+      - name: Install Dependencies
+        working-directory: ./frontend # Specify the frontend directory
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Deploy to GitHub Pages (or your hosting service)
+        # This step is an example for GitHub Pages.
+        # Replace with steps relevant to your chosen hosting provider (e.g., Netlify, Vercel, AWS S3, etc.)
+        if: github.ref == 'refs/heads/main' # Deploy only on pushes to the main branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./frontend/build # Directory containing your built frontend assets
+          # If your application uses client-side routing, uncomment the next line
+          # cname: example.com # Uncomment and replace with your custom domain if applicable
