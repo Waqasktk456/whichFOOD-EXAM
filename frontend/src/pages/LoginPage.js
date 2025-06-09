@@ -48,7 +48,7 @@ const LoginPage = () => {
 
     try {
       // Make API call to login
-      const response = await axios.post(`${API_BASE_URL}/api/users/login`, {
+      const response = await axios.post(`whichfood-backend-g7d4fjbth7gbgubz.centralindia-01.azurewebsites.net/api/users/login`, {
         email,
         password,
       });
