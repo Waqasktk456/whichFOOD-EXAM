@@ -1,23 +1,15 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
-import {
-  Container, Typography, Box, Paper, Grid, TextField, Button, MenuItem,
-  Snackbar, Alert, CircularProgress, List, ListItem, ListItemText, IconButton,
-  Divider, Tooltip, InputAdornment
-} from '@mui/material';
+import React, { useState, useEffect, useContext } from 'react';
+import { Container, Typography, Box, Paper, Grid, TextField, Button, MenuItem, Snackbar, Alert, CircularProgress, List, ListItem, ListItemText, IconButton } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js'; // Renamed Tooltip to ChartTooltip to avoid conflict
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import SearchIcon from '@mui/icons-material/Search';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import api from '../utils/api'; // CONFIRMED: Using '../utils/api' based on other files
+import api from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
-import { format, parseISO } from 'date-fns';
 
-ChartJS.register(ArcElement, ChartTooltip, Legend); // Register the renamed Tooltip
+ChartJS.register(ArcElement, Tooltip, Legend);
 
-// Styled components
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   borderRadius: theme.borderRadius?.medium || 8,
@@ -35,470 +27,424 @@ const FoodCard = styled(Paper)(({ theme }) => ({
   justifyContent: 'space-between',
 }));
 
+
 const SectionPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
+  padding: theme.spacing(2),
   borderRadius: theme.borderRadius?.medium || 8,
   boxShadow: theme.shadows?.medium || '0 4px 20px rgba(0,0,0,0.1)',
-  height: '100%',
+  height: '400px',
+  width: '100%',
   display: 'flex',
   flexDirection: 'column',
+  overflow: 'hidden',
 }));
-
-const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
-const NUTRIENT_COLORS = {
-  ENERC_KCAL: '#FF6384', // Calories
-  PROCNT: '#36A2EB', // Protein
-  FAT: '#FFCE56',    // Fats
-  CHOCDF: '#4BC0C0',  // Carbs
-  // Add more as needed
-};
 
 const MealLogPage = () => {
   const { token } = useContext(AuthContext);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [mealType, setMealType] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFoods, setSelectedFoods] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
-  const [selectedFood, setSelectedFood] = useState(null);
-  const [quantity, setQuantity] = useState(1);
-  const [measure, setMeasure] = useState('serving'); // Default measure
-  const [mealType, setMealType] = useState('Breakfast');
+  const [mealLogs, setMealLogs] = useState([]);
+  const [nutritionSummary, setNutritionSummary] = useState({
+    currentIntake: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+    nutritionNeeds: { calories: 2000, protein: 75, carbs: 275, fat: 65, fiber: 30 },
+  });
+
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingLog, setLoadingLog] = useState(false);
-  const [loadingMeals, setLoadingMeals] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-  const [loggedMeals, setLoggedMeals] = useState({});
-  const [dailyNutrientSummary, setDailyNutrientSummary] = useState({
-    ENERC_KCAL: 0,
-    PROCNT: 0,
-    FAT: 0,
-    CHOCDF: 0,
-  });
-  const [chartData, setChartData] = useState({
-    labels: [],
-    datasets: [{
-      data: [],
-      backgroundColor: [],
-      hoverBackgroundColor: []
-    }]
-  });
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd')); // Current date
 
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setLoadingSummary(true);
+      try {
+        const logsResponse = await api.get('/meals');
+        setMealLogs(logsResponse.data || []);
+
+        const summaryResponse = await api.get('/meals/stats');
+        setNutritionSummary(summaryResponse.data || nutritionSummary);
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+        setSnackbarMessage(error.response?.data?.message || 'Failed to load meal data');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+      } finally {
+        setLoadingSummary(false);
+      }
+    };
+
+    if (token) {
+      fetchInitialData();
     }
-    setSnackbarOpen(false);
+  }, [token]);
+
+  const chartData = {
+    labels: ['Protein (g)', 'Carbs (g)', 'Fat (g)'],
+    datasets: [
+      {
+        data: [
+          nutritionSummary.currentIntake.protein || 0,
+          nutritionSummary.currentIntake.carbs || 0,
+          nutritionSummary.currentIntake.fat || 0,
+        ],
+        backgroundColor: ['#0088FE', '#00C49F', '#FFBB28'],
+        borderWidth: 1,
+      },
+    ],
   };
 
-  const showSnackbar = (message, severity) => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setSnackbarOpen(true);
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      title: { display: true, text: 'Macronutrient Distribution (grams)' },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            let label = context.label || '';
+            if (label) label += ': ';
+            if (context.parsed !== null) label += context.parsed.toFixed(1) + 'g';
+            return label;
+          }
+        }
+      }
+    },
   };
 
-  const fetchFood = useCallback(async () => {
-    if (searchTerm.length < 3) {
-      setSearchResults([]);
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSnackbarMessage('Please enter a food item to search');
+      setSnackbarSeverity('warning');
+      setSnackbarOpen(true);
       return;
     }
     setLoadingSearch(true);
+    setSearchResults([]);
     try {
-      const response = await api.get(`/api/food/search?query=${searchTerm}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await api.get('/food/search', {
+        params: { query: searchQuery }
       });
-      setSearchResults(response.data);
-      setError(null);
-    } catch (err) {
-      console.error('Error searching food:', err);
-      setError('Failed to fetch food items. Please try again.');
-      setSearchResults([]);
+      console.log("Search Response:", response.data);
+      setSearchResults(response.data.foods || []);
+      if (!response.data.foods || response.data.foods.length === 0) {
+        setSnackbarMessage('No foods found. Try a different search term.');
+        setSnackbarSeverity('info');
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      setSnackbarMessage(error.response?.data?.message || 'Failed to search foods');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     } finally {
       setLoadingSearch(false);
     }
-  }, [searchTerm, token]);
+  };
 
-  // Debounce search term to avoid excessive API calls
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      fetchFood();
-    }, 500); // 500ms delay
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchTerm, fetchFood]);
-
-  const fetchLoggedMeals = useCallback(async () => {
-    if (!token) {
-      setError('User not authenticated. Please log in.');
-      setLoadingMeals(false);
+  const handleAddFood = (food) => {
+    const defaultMeasure = food.measures.find(m => m.label.toLowerCase() === 'serving') || food.measures[0];
+    if (!defaultMeasure) {
+      setSnackbarMessage(`Could not find a default measure for ${food.name}`);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
       return;
     }
 
-    setLoadingMeals(true);
-    setError(null);
-    try {
-      const response = await api.get(`/api/meals?date=${selectedDate}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const meals = response.data;
-      const groupedMeals = meals.reduce((acc, meal) => {
-        const type = meal.mealType || 'Unknown';
-        if (!acc[type]) {
-          acc[type] = [];
-        }
-        acc[type].push(meal);
-        return acc;
-      }, {});
-      setLoggedMeals(groupedMeals);
+    setSelectedFoods([...selectedFoods, {
+      foodId: food.id,
+      name: food.name,
+      quantity: 1,
+      measureURI: defaultMeasure.uri,
+      measureLabel: defaultMeasure.label,
+      nutrients: food.nutrients,
+      availableMeasures: food.measures
+    }]);
+    setSearchResults([]);
+    setSearchQuery('');
+  };
 
-      // Calculate daily nutrient summary
-      const summary = { ENERC_KCAL: 0, PROCNT: 0, FAT: 0, CHOCDF: 0 };
-      meals.forEach(meal => {
-        meal.foods.forEach(food => {
-          summary.ENERC_KCAL += (food.nutrients?.ENERC_KCAL?.value || 0) * food.quantity;
-          summary.PROCNT += (food.nutrients?.PROCNT?.value || 0) * food.quantity;
-          summary.FAT += (food.nutrients?.FAT?.value || 0) * food.quantity;
-          summary.CHOCDF += (food.nutrients?.CHOCDF?.value || 0) * food.quantity;
-        });
-      });
-      setDailyNutrientSummary(summary);
-    } catch (err) {
-      console.error('Error fetching logged meals:', err);
-      setError('Failed to load logged meals. Please try again.');
-      setLoggedMeals({});
-      setDailyNutrientSummary({ ENERC_KCAL: 0, PROCNT: 0, FAT: 0, CHOCDF: 0 }); // Reset on error
-    } finally {
-      setLoadingMeals(false);
-    }
-  }, [token, selectedDate]);
+  const handleRemoveFood = (index) => {
+    const newSelectedFoods = [...selectedFoods];
+    newSelectedFoods.splice(index, 1);
+    setSelectedFoods(newSelectedFoods);
+  };
 
-  useEffect(() => {
-    fetchLoggedMeals();
-  }, [fetchLoggedMeals]);
-
-  // Update chart data whenever dailyNutrientSummary changes
-  useEffect(() => {
-    const labels = Object.keys(dailyNutrientSummary);
-    const data = Object.values(dailyNutrientSummary);
-    const backgroundColors = labels.map(label => NUTRIENT_COLORS[label] || '#CCCCCC'); // Default grey for unknown
-    const hoverBackgroundColors = labels.map(label => NUTRIENT_COLORS[label] || '#CCCCCC');
-
-    // Ensure data array has at least some values to avoid errors if all are zero
-    // Chart.js `reduce` error often happens if the `data` array is empty or contains non-numbers
-    const filteredData = data.filter(value => typeof value === 'number' && !isNaN(value) && value > 0);
-    const filteredLabels = labels.filter((_, index) => typeof data[index] === 'number' && !isNaN(data[index]) && data[index] > 0);
-    const filteredBackgroundColors = backgroundColors.filter((_, index) => typeof data[index] === 'number' && !isNaN(data[index]) && data[index] > 0);
-    const filteredHoverBackgroundColors = hoverBackgroundColors.filter((_, index) => typeof data[index] === 'number' && !isNaN(data[index]) && data[index] > 0);
-
-    setChartData({
-      labels: filteredLabels,
-      datasets: [{
-        label: 'Nutrient Intake',
-        data: filteredData,
-        backgroundColor: filteredBackgroundColors,
-        hoverBackgroundColor: filteredHoverBackgroundColors,
-        borderWidth: 1, // Add border for better separation
-      }],
-    });
-  }, [dailyNutrientSummary]);
-
-
-  const handleFoodSelect = (food) => {
-    setSelectedFood(food);
-    // Reset quantity and measure if it was an explicit choice
-    setQuantity(1);
-    // Attempt to set a default measure if available from the API response
-    if (food.measures && food.measures.length > 0) {
-      setMeasure(food.measures[0].label || 'serving');
-    } else {
-      setMeasure('serving'); // Fallback
-    }
-    setSearchResults([]); // Clear search results after selection
-    setSearchTerm(''); // Clear search term as well
+  const handleQuantityChange = (index, value) => {
+    const newSelectedFoods = [...selectedFoods];
+    newSelectedFoods[index].quantity = Math.max(0.1, Number(value));
+    setSelectedFoods(newSelectedFoods);
   };
 
   const handleLogMeal = async () => {
-    if (!selectedFood || !quantity || !mealType || !measure) {
-      showSnackbar('Please select a food, quantity, and meal type.', 'warning');
+    if (!mealType || selectedFoods.length === 0) {
+      setSnackbarMessage('Please select a meal type and add at least one food item');
+      setSnackbarSeverity('warning');
+      setSnackbarOpen(true);
       return;
     }
     setLoadingLog(true);
     try {
-      await api.post('/api/meals/log', {
-        foodId: selectedFood.id, // Assuming selectedFood has an ID
-        name: selectedFood.name,
-        quantity: parseFloat(quantity),
-        measure: measure,
-        mealType: mealType,
-        date: selectedDate, // Use the selected date
-        nutrients: selectedFood.nutrients, // Pass full nutrients
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const payload = {
+        mealType,
+        foods: selectedFoods.map(food => {
+          const quantity = food.quantity || 1;
+          const adjustedNutrients = {
+            ENERC_KCAL: (food.nutrients?.ENERC_KCAL || 0) * quantity,
+            PROCNT: (food.nutrients?.PROCNT || 0) * quantity,
+            CHOCDF: (food.nutrients?.CHOCDF || 0) * quantity,
+            FAT: (food.nutrients?.FAT || 0) * quantity,
+            FIBTG: (food.nutrients?.FIBTG || 0) * quantity,
+          };
+          return {
+            foodId: food.foodId,
+            name: food.name,
+            quantity: quantity,
+            measureURI: food.measureURI,
+            measureLabel: food.measureLabel,
+            nutrients: adjustedNutrients,
+          };
+        }),
+        date: new Date().toISOString(),
+      };
+
+      const response = await api.post('/meals', payload);
+      setMealLogs(prevLogs => {
+        const newLog = response.data;
+        const existingMeals = prevLogs.filter(log => log.mealType !== newLog.mealType);
+        const sameTypeMeals = prevLogs.filter(log => log.mealType === newLog.mealType);
+        return [newLog, ...sameTypeMeals, ...existingMeals];
       });
-      showSnackbar('Meal logged successfully!', 'success');
-      setSelectedFood(null); // Clear selection after logging
-      setQuantity(1);
-      fetchLoggedMeals(); // Re-fetch meals to update the log and summary
-    } catch (err) {
-      console.error('Error logging meal:', err);
-      let errorMessage = 'Failed to log meal.';
-      if (err.response) {
-        errorMessage = `Error: ${err.response.status} - ${err.response.data.message || 'Server error'}`;
-      } else if (err.request) {
-        errorMessage = 'Network error: No response from server.';
-      } else {
-        errorMessage = `Request error: ${err.message}`;
-      }
-      showSnackbar(errorMessage, 'error');
+
+      const summaryResponse = await api.get('/meals/stats');
+      setNutritionSummary(summaryResponse.data || nutritionSummary);
+
+      setSelectedFoods([]);
+      setMealType('');
+      setSnackbarMessage('Meal logged successfully!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Meal logging error:", error);
+      setSnackbarMessage(error.response?.data?.message || 'Failed to log meal');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     } finally {
       setLoadingLog(false);
     }
   };
 
-  const handleDeleteMealItem = async (mealId) => {
-    if (!window.confirm('Are you sure you want to delete this meal item?')) {
-      return;
-    }
-    try {
-      await api.delete(`/api/meals/${mealId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      showSnackbar('Meal item deleted successfully!', 'success');
-      fetchLoggedMeals(); // Re-fetch meals to update the log and summary
-    } catch (err) {
-      console.error('Error deleting meal item:', err);
-      let errorMessage = 'Failed to delete meal item.';
-      if (err.response) {
-        errorMessage = `Error: ${err.response.status} - ${err.response.data.message || 'Server error'}`;
-      } else {
-        errorMessage = `Request error: ${err.message}`;
-      }
-      showSnackbar(errorMessage, 'error');
-    }
-  };
+  const selectedFoodsTotalCalories = selectedFoods.reduce((sum, food) => {
+    const caloriesPerUnit = food.nutrients?.ENERC_KCAL || 0;
+    return sum + (caloriesPerUnit * food.quantity);
+  }, 0);
 
+  const groupedMeals = mealLogs.reduce((acc, meal) => {
+    if (!acc[meal.mealType]) {
+      acc[meal.mealType] = [];
+    }
+    acc[meal.mealType].push(meal);
+    return acc;
+  }, {});
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom align="center">
-        Meal Log
+    <Container maxWidth="lg" sx={{ py: 4, minHeight: 'calc(100vh - 64px)' }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Meal Logging
       </Typography>
 
       <Grid container spacing={3}>
-        {/* Left Column: Log a Meal */}
-        <Grid item xs={12} md={6}>
-          <StyledPaper>
+        {/* Search Section */}
+        <Grid item xs={12} sm={12} md={4} sx={{ flex: 1 }}>
+          <SectionPaper>
             <Typography variant="h6" gutterBottom>
               Log a Meal
             </Typography>
-
-            <TextField
-              fullWidth
-              label="Select Date"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              sx={{ mb: 2 }}
-            />
-
-            <TextField
-              fullWidth
-              label="Search Food"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="e.g., apple, chicken breast"
-              sx={{ mb: 2 }}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {loadingSearch ? <CircularProgress size={20} /> : <SearchIcon />}
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            {searchResults.length > 0 && (
-              <Paper sx={{ maxHeight: 200, overflow: 'auto', width: '100%', mb: 2 }}>
-                <List dense>
-                  {searchResults.map((food) => (
-                    <ListItem button key={food.id} onClick={() => handleFoodSelect(food)}>
-                      <ListItemText primary={food.name} secondary={`${Math.round(food.nutrients.ENERC_KCAL || 0)} kcal`} />
-                    </ListItem>
-                  ))}
-                </List>
-              </Paper>
-            )}
-
-            {selectedFood && (
-              <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, width: '100%' }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Selected Food: {selectedFood.name}
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <TextField
-                      fullWidth
-                      label="Quantity"
-                      type="number"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      inputProps={{ min: "0.1", step: "0.1" }}
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Measure</InputLabel>
-                      <Select
-                        value={measure}
-                        label="Measure"
-                        onChange={(e) => setMeasure(e.target.value)}
-                      >
-                        {selectedFood.measures?.map((m) => (
-                          <MenuItem key={m.uri} value={m.label}>
-                            {m.label}
-                          </MenuItem>
-                        )) || <MenuItem value="serving">serving</MenuItem>}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>Meal Type</InputLabel>
-                      <Select
-                        value={mealType}
-                        label="Meal Type"
-                        onChange={(e) => setMealType(e.target.value)}
-                      >
-                        {MEAL_TYPES.map((type) => (
-                          <MenuItem key={type} value={type}>
-                            {type}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                </Grid>
-                <Button
-                  variant="contained"
-                  color="primary"
+            <Box sx={{ flexGrow: 1, overflow: 'auto', width: '100%' }}>
+              <Box component="form" sx={{ mt: 1 }}>
+                <TextField
+                  select
+                  label="Meal Type"
+                  value={mealType}
+                  onChange={(e) => setMealType(e.target.value)}
                   fullWidth
-                  sx={{ mt: 3 }}
-                  onClick={handleLogMeal}
-                  disabled={loadingLog}
+                  margin="normal"
+                  required
                 >
-                  {loadingLog ? <CircularProgress size={24} /> : 'Log Meal'}
-                </Button>
+                  <MenuItem value="breakfast">Breakfast</MenuItem>
+                  <MenuItem value="lunch">Lunch</MenuItem>
+                  <MenuItem value="dinner">Dinner</MenuItem>
+                  <MenuItem value="snack">Snack</MenuItem>
+                </TextField>
+
+                <Box sx={{ display: 'flex', mt: 1, mb: 1 }}>
+                  <TextField
+                    label="Search Food"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    fullWidth
+                    margin="dense"
+                    onKeyPress={(e) => { if (e.key === 'Enter') { handleSearch(); e.preventDefault(); } }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleSearch}
+                    disabled={loadingSearch}
+                    sx={{ ml: 1, mt: 1, height: 'fit-content' }}
+                  >
+                    {loadingSearch ? <CircularProgress size={24} /> : 'Search'}
+                  </Button>
+                </Box>
+
+                {searchResults.length > 0 && (
+                  <Paper variant="outlined" sx={{ mt: 1, maxHeight: 150, overflowY: 'auto', p: 1 }}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ pl: 1 }}>
+                      Search Results
+                    </Typography>
+                    <List dense sx={{ width: '100%' }}>
+                      {searchResults.map((food) => (
+                        <ListItem
+                          key={food.id}
+                          secondaryAction={
+                            <IconButton edge="end" aria-label="add" onClick={() => handleAddFood(food)}>
+                              <AddCircleOutlineIcon color="primary" />
+                            </IconButton>
+                          }
+                        >
+                          <ListItemText
+                            primary={food.name}
+                            secondary={`${food.nutrients?.ENERC_KCAL?.toFixed(0) || 0} kcal | P:${food.nutrients?.PROCNT?.toFixed(1) || 0}g | C:${food.nutrients?.CHOCDF?.toFixed(1) || 0}g | F:${food.nutrients?.FAT?.toFixed(1) || 0}g`}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Paper>
+                )}
+
+                {selectedFoods.length > 0 && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Selected Foods for {mealType || 'Meal'}
+                    </Typography>
+                    {selectedFoods.map((food, index) => (
+                      <FoodCard key={`${food.foodId}-${index}`}>
+                        <Box sx={{ flexGrow: 1, mr: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{food.name}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {((food.nutrients?.ENERC_KCAL || 0) * food.quantity).toFixed(0)} kcal | P: {((food.nutrients?.PROCNT || 0) * food.quantity).toFixed(1)}g | C: {((food.nutrients?.CHOCDF || 0) * food.quantity).toFixed(1)}g | F: {((food.nutrients?.FAT || 0) * food.quantity).toFixed(1)}g
+                          </Typography>
+                        </Box>
+                        <TextField
+                          type="number"
+                          label="Qty"
+                          size="small"
+                          value={food.quantity}
+                          onChange={(e) => handleQuantityChange(index, e.target.value)}
+                          InputProps={{ inputProps: { min: 0.1, step: 0.1 } }}
+                          sx={{ width: 100, mx: 1 }} // Increased width from 70 to 100
+                        />
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemoveFood(index)}
+                        >
+                          <RemoveCircleOutlineIcon />
+                        </IconButton>
+                      </FoodCard>
+                    ))}
+
+                    <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="subtitle1">
+                        Total: {selectedFoodsTotalCalories.toFixed(0)} kcal
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleLogMeal}
+                        disabled={loadingLog || !mealType}
+                      >
+                        {loadingLog ? <CircularProgress size={24} /> : 'Log Meal'}
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
               </Box>
-            )}
-          </StyledPaper>
+            </Box>
+          </SectionPaper>
         </Grid>
 
-        {/* Right Column: Daily Summary & Meal List */}
-        <Grid item xs={12} md={6}>
+        {/* Today's Nutrition Summary */}
+        <Grid item xs={12} sm={12} md={4} sx={{ flex: 1 }}>
           <SectionPaper>
-            <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-              Daily Nutrient Summary ({format(parseISO(selectedDate), 'MMM d, yyyy')})
+            <Typography variant="h6" gutterBottom>
+              Today's Nutrition Summary
             </Typography>
-            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 2 }}>
-              {loadingMeals ? (
-                <CircularProgress />
-              ) : error ? (
-                <Alert severity="error">{error}</Alert>
-              ) : chartData.labels.length > 0 ? (
-                <Box sx={{ width: '80%', height: '80%', maxWidth: 300, maxHeight: 300 }}>
-                  <Pie
-                    data={chartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'right',
-                          labels: {
-                            boxWidth: 20,
-                            padding: 15,
-                            font: {
-                              size: 14,
-                            },
-                          },
-                        },
-                        ChartTooltip: { // Use ChartTooltip
-                          callbacks: {
-                            label: function(context) {
-                              let label = context.label || '';
-                              if (label) {
-                                label += ': ';
-                              }
-                              if (context.parsed !== null) {
-                                label += `${Math.round(context.parsed)} ${context.label === 'ENERC_KCAL' ? 'kcal' : 'g'}`;
-                              }
-                              return label;
-                            }
-                          }
-                        },
-                        title: {
-                          display: false,
-                        }
-                      },
-                    }}
-                  />
-                </Box>
+            <Box sx={{ flexGrow: 1, overflow: 'auto', width: '100%' }}>
+              {loadingSummary ? (
+                <CircularProgress sx={{ display: 'block', mx: 'auto', my: '50%' }} />
               ) : (
-                <Typography variant="body1" color="text.secondary">
-                  Log meals to see your daily nutrient summary.
-                </Typography>
+                <>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="subtitle1">
+                      Total Calories: {nutritionSummary.currentIntake.calories?.toFixed(0) || 0} kcal
+                    </Typography>
+                    <Typography variant="subtitle1" color="primary">
+                      Goal: {nutritionSummary.nutritionNeeds.calories?.toFixed(0) || 2000} kcal
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ height: 150, position: 'relative', mb: 2 }}>
+                    <Pie options={chartOptions} data={chartData} />
+                  </Box>
+
+                  <Grid container spacing={1}>
+                    <Grid item xs={4} sx={{ textAlign: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">Protein</Typography>
+                      <Typography variant="h6">{nutritionSummary.currentIntake.protein?.toFixed(1) || 0}g</Typography>
+                      <Typography variant="caption" color="text.secondary">Goal: {nutritionSummary.nutritionNeeds.protein?.toFixed(0) || 75}g</Typography>
+                    </Grid>
+                    <Grid item xs={4} sx={{ textAlign: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">Carbs</Typography>
+                      <Typography variant="h6">{nutritionSummary.currentIntake.carbs?.toFixed(1) || 0}g</Typography>
+                      <Typography variant="caption" color="text.secondary">Goal: {nutritionSummary.nutritionNeeds.carbs?.toFixed(0) || 275}g</Typography>
+                    </Grid>
+                    <Grid item xs={4} sx={{ textAlign: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">Fat</Typography>
+                      <Typography variant="h6">{nutritionSummary.currentIntake.fat?.toFixed(1) || 0}g</Typography>
+                      <Typography variant="caption" color="text.secondary">Goal: {nutritionSummary.nutritionNeeds.fat?.toFixed(0) || 65}g</Typography>
+                    </Grid>
+                  </Grid>
+                </>
               )}
             </Box>
+          </SectionPaper>
+        </Grid>
 
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-              Logged Meals
+        {/* Today's Meals */}
+        <Grid item xs={12} sm={12} md={4} sx={{ flex: 1 }}>
+          <SectionPaper>
+            <Typography variant="h6" gutterBottom>
+              Today's Meals
             </Typography>
-            <Box sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: 400 }}>
-              {loadingMeals ? (
-                <Box display="flex" justifyContent="center" alignItems="center" height="100px">
-                  <CircularProgress />
-                </Box>
-              ) : Object.keys(loggedMeals).length > 0 ? (
-                Object.keys(loggedMeals).map((mealType) => (
-                  <Box key={mealType} sx={{ mb: 2 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      {mealType}
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', width: '100%' }}>
+              {loadingSummary ? (
+                <CircularProgress sx={{ display: 'block', mx: 'auto', my: '50%' }} />
+              ) : Object.keys(groupedMeals).length > 0 ? (
+                Object.entries(groupedMeals).map(([mealType, meals]) => (
+                  <Box key={mealType} sx={{ mb: 2, width: '100%' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'medium', mb: 1 }}>
+                      {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
                     </Typography>
-                    <List disablePadding>
-                      {loggedMeals[mealType].map((meal) => (
-                        <Box key={meal._id || meal.id} sx={{ mb: 1, border: '1px solid #f0f0f0', borderRadius: 1 }}>
-                          <ListItem
-                            secondaryAction={
-                              <Tooltip title="Delete Meal Item">
-                                <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteMealItem(meal._id || meal.id)}>
-                                  <RemoveCircleOutlineIcon color="error" />
-                                </IconButton>
-                              </Tooltip>
-                            }
-                          >
+                    <List dense sx={{ width: '100%' }}>
+                      {meals.map((meal) => (
+                        <Box key={meal._id} sx={{ mb: 1, width: '100%' }}>
+                          <ListItem disablePadding sx={{ pb: 0.5, width: '100%' }}>
                             <ListItemText
-                              primary={
-                                <Typography variant="body1" component="span" sx={{ fontWeight: 'medium' }}>
-                                  {meal.foods.map(f => f.name).join(', ')}
-                                </Typography>
-                              }
-                              secondary={`Total: ${Math.round(meal.foods.reduce((sum, f) => sum + (f.nutrients?.ENERC_KCAL?.value || 0) * f.quantity, 0))} kcal`}
+                              secondary={`Logged at ${new Date(meal.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | ~${(meal.totalNutrients?.ENERC_KCAL?.quantity || meal.totalNutrients?.ENERC_KCAL?.value || 0).toFixed(0)} kcal`}
                             />
                           </ListItem>
                           {meal.foods.map((food, index) => (
@@ -517,7 +463,7 @@ const MealLogPage = () => {
                 ))
               ) : (
                 <Typography variant="body1" sx={{ textAlign: 'center', mt: 2, width: '100%' }}>
-                  No meals logged for this date.
+                  No meals logged today.
                 </Typography>
               )}
             </Box>
@@ -528,11 +474,11 @@ const MealLogPage = () => {
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
-        onClose={handleSnackbarClose}
+        onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert
-          onClose={handleSnackbarClose}
+          onClose={() => setSnackbarOpen(false)}
           severity={snackbarSeverity}
           sx={{ width: '100%' }}
         >
