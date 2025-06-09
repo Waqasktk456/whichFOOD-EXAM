@@ -5,7 +5,7 @@ import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import api from '../services/api';
+import api from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
