@@ -1,6 +1,3 @@
-
-import api from '../utils/api';
-
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Typography, Box, Paper, Grid, TextField, Button, Avatar, InputAdornment, MenuItem, Snackbar, Alert, Divider } from '@mui/material';
@@ -12,7 +9,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import LocalDiningIcon from '@mui/icons-material/LocalDining';
 import MedicalInformationIcon from '@mui/icons-material/MedicalInformation';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-
+import api from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -26,7 +23,7 @@ const ProfileAvatar = styled(Avatar)(({ theme }) => ({
   width: 120,
   height: 120,
   margin: '0 auto',
-  border: 4px solid ${theme.palette.primary.main},
+  border: `4px solid ${theme.palette.primary.main}`,
 }));
 
 const ProfilePage = () => {
@@ -49,9 +46,7 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/users/profile', {
-          headers: { Authorization: Bearer ${token} },
-        });
+        const response = await api.get('/users/profile');
         setUserData(response.data);
         setEditedData({
           ...response.data,
@@ -101,10 +96,7 @@ const ProfilePage = () => {
       delete requestData.bloodPressureSystolic;
       delete requestData.bloodPressureDiastolic;
 
-      const response = await api.put('/users/profile', requestData, {
-        headers: { Authorization: Bearer ${token} },
-      });
-
+      const response = await api.put('/users/profile', requestData);
       setUserData(response.data);
       setEditedData({
         ...response.data,
@@ -159,7 +151,7 @@ const ProfilePage = () => {
       </Typography>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={12} md={4}>
           <StyledPaper>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
               <ProfileAvatar src={userData.profilePicture || 'https://source.unsplash.com/random/200x200/?portrait'} alt={userData.name} />
@@ -202,7 +194,7 @@ const ProfilePage = () => {
                 BMI
               </Typography>
               <Typography variant="h6">
-                {userData.healthMetrics.bmi}
+                {userData.healthMetrics?.bmi || 'Not set'}
               </Typography>
             </Box>
 
@@ -211,7 +203,7 @@ const ProfilePage = () => {
                 BMR
               </Typography>
               <Typography variant="h6">
-                {userData.healthMetrics.bmr} calories/day
+                {userData.healthMetrics?.bmr ? `${userData.healthMetrics.bmr} calories/day` : 'Not set'}
               </Typography>
             </Box>
 
@@ -219,14 +211,14 @@ const ProfilePage = () => {
               <Typography variant="subtitle2" color="text.secondary">
                 Daily Caloric Needs
               </Typography>
-              <Typography variant="h6">
-                {userData.healthMetrics.dailyCalories} calories/day
+              <Typography variant="body1">
+                {userData.healthMetrics?.dailyCalories ? `${userData.healthMetrics.dailyCalories} calories/day` : 'Not set'}
               </Typography>
             </Box>
           </StyledPaper>
         </Grid>
 
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} sm={12} md={8}>
           <StyledPaper>
             {isEditing ? (
               <Box component="form">
@@ -485,7 +477,7 @@ const ProfilePage = () => {
                       Age
                     </Typography>
                     <Typography variant="body1">
-                      {userData.age} years
+                      {userData.age || 'Not set'} years
                     </Typography>
                   </Grid>
 
@@ -494,7 +486,7 @@ const ProfilePage = () => {
                       Gender
                     </Typography>
                     <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                      {userData.gender}
+                      {userData.gender || 'Not set'}
                     </Typography>
                   </Grid>
 
@@ -503,7 +495,7 @@ const ProfilePage = () => {
                       Height
                     </Typography>
                     <Typography variant="body1">
-                      {userData.height} cm
+                      {userData.height ? `${userData.height} cm` : 'Not set'}
                     </Typography>
                   </Grid>
 
@@ -512,7 +504,7 @@ const ProfilePage = () => {
                       Weight
                     </Typography>
                     <Typography variant="body1">
-                      {userData.weight} kg
+                      {userData.weight ? `${userData.weight} kg` : 'Not set'}
                     </Typography>
                   </Grid>
 
@@ -522,7 +514,7 @@ const ProfilePage = () => {
                     </Typography>
                     <Typography variant="body1">
                       {userData.bloodPressure?.systolic && userData.bloodPressure?.diastolic 
-                        ? ${userData.bloodPressure.systolic}/${userData.bloodPressure.diastolic} mmHg
+                        ? `${userData.bloodPressure.systolic}/${userData.bloodPressure.diastolic} mmHg`
                         : 'Not set'}
                     </Typography>
                   </Grid>
@@ -532,7 +524,7 @@ const ProfilePage = () => {
                       Blood Glucose
                     </Typography>
                     <Typography variant="body1">
-                      {userData.bloodGlucose ? ${userData.bloodGlucose} mg/dL : 'Not set'}
+                      {userData.bloodGlucose ? `${userData.bloodGlucose} mg/dL` : 'Not set'}
                     </Typography>
                   </Grid>
 
@@ -541,7 +533,7 @@ const ProfilePage = () => {
                       Activity Level
                     </Typography>
                     <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                      {userData.activityLevel?.replace('_', ' ')}
+                      {userData.activityLevel?.replace('_', ' ') || 'Not set'}
                     </Typography>
                   </Grid>
 
@@ -550,7 +542,7 @@ const ProfilePage = () => {
                       Target Weight
                     </Typography>
                     <Typography variant="body1">
-                      {userData.targetWeight || 'Not set'} kg
+                      {userData.targetWeight ? `${userData.targetWeight} kg` : 'Not set'}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -567,9 +559,7 @@ const ProfilePage = () => {
                       Allergies
                     </Typography>
                     <Typography variant="body1">
-                      {userData.allergies?.length > 0 
-                        ? userData.allergies.join(', ')
-                        : 'None'}
+                      {userData.allergies?.length > 0 ? userData.allergies.join(', ') : 'None'}
                     </Typography>
                   </Grid>
 
@@ -578,9 +568,7 @@ const ProfilePage = () => {
                       Dietary Restrictions
                     </Typography>
                     <Typography variant="body1">
-                      {userData.dietaryRestrictions?.length > 0 
-                        ? userData.dietaryRestrictions.join(', ')
-                        : 'None'}
+                      {userData.dietaryRestrictions?.length > 0 ? userData.dietaryRestrictions.join(', ') : 'None'}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -597,9 +585,7 @@ const ProfilePage = () => {
                       Health Conditions
                     </Typography>
                     <Typography variant="body1">
-                      {userData.healthConditions?.length > 0 
-                        ? userData.healthConditions.join(', ')
-                        : 'None'}
+                      {userData.healthConditions?.length > 0 ? userData.healthConditions.join(', ') : 'None'}
                     </Typography>
                   </Grid>
 
@@ -608,9 +594,7 @@ const ProfilePage = () => {
                       Medications
                     </Typography>
                     <Typography variant="body1">
-                      {userData.medications?.length > 0 
-                        ? userData.medications.join(', ')
-                        : 'None'}
+                      {userData.medications?.length > 0 ? userData.medications.join(', ') : 'None'}
                     </Typography>
                   </Grid>
                 </Grid>
