@@ -46,7 +46,7 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/api/users/profile', {
+        const response = await api.get('/users/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserData(response.data);
@@ -98,7 +98,7 @@ const ProfilePage = () => {
       delete requestData.bloodPressureSystolic;
       delete requestData.bloodPressureDiastolic;
 
-      const response = await api.put('/api/users/profile', requestData, {
+      const response = await api.put('/users/profile', requestData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
