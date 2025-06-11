@@ -1,3 +1,6 @@
+
+import api from '../utils/api';
+
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Typography, Box, Paper, Grid, TextField, Button, Avatar, InputAdornment, MenuItem, Snackbar, Alert, Divider } from '@mui/material';
@@ -9,7 +12,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import LocalDiningIcon from '@mui/icons-material/LocalDining';
 import MedicalInformationIcon from '@mui/icons-material/MedicalInformation';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import api from '../utils/api';
+
 import { AuthContext } from '../context/AuthContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -23,7 +26,7 @@ const ProfileAvatar = styled(Avatar)(({ theme }) => ({
   width: 120,
   height: 120,
   margin: '0 auto',
-  border: `4px solid ${theme.palette.primary.main}`,
+  border: 4px solid ${theme.palette.primary.main},
 }));
 
 const ProfilePage = () => {
@@ -46,14 +49,14 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/users/meals', {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await api.get('/users/profile', {
+          headers: { Authorization: Bearer ${token} },
         });
         setUserData(response.data);
         setEditedData({
           ...response.data,
           bloodPressureSystolic: response.data.bloodPressure?.systolic || '',
-          bloodPressureDiabetic: response.data.bloodPressure?.diabetic || '',
+          bloodPressureDiastolic: response.data.bloodPressure?.diastolic || '',
           bloodGlucose: response.data.bloodGlucose || '',
         });
       } catch (error) {
@@ -91,22 +94,22 @@ const ProfilePage = () => {
         ...editedData,
         bloodPressure: {
           systolic: editedData.bloodPressureSystolic ? Number(editedData.bloodPressureSystolic) : undefined,
-          diabetic: editedData.bloodPressureDiabetic ? Number(editedData.bloodPressureDiabetic) : undefined,
+          diastolic: editedData.bloodPressureDiastolic ? Number(editedData.bloodPressureDiastolic) : undefined,
         },
         bloodGlucose: editedData.bloodGlucose ? Number(editedData.bloodGlucose) : undefined,
       };
       delete requestData.bloodPressureSystolic;
-      delete requestData.bloodPressureDiabetic;
+      delete requestData.bloodPressureDiastolic;
 
       const response = await api.put('/users/profile', requestData, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: Bearer ${token} },
       });
 
       setUserData(response.data);
       setEditedData({
         ...response.data,
         bloodPressureSystolic: response.data.bloodPressure?.systolic || '',
-        bloodPressureDiabetic: response.data.bloodPressure?.diabetic || '',
+        bloodPressureDiastolic: response.data.bloodPressure?.diastolic || '',
         bloodGlucose: response.data.bloodGlucose || '',
       });
       setIsEditing(false);
@@ -128,7 +131,7 @@ const ProfilePage = () => {
     setEditedData({
       ...userData,
       bloodPressureSystolic: userData.bloodPressure?.systolic || '',
-      bloodPressureDiabetic: userData.bloodPressure?.diabetic || '',
+      bloodPressureDiastolic: userData.bloodPressure?.diastolic || '',
       bloodGlucose: userData.bloodGlucose || '',
     });
     setIsEditing(false);
@@ -155,8 +158,8 @@ const ProfilePage = () => {
         My Profile
       </Typography>
 
-      <Grid container spacing={3} sx={{ flexWrap: 'wrap' }}>
-        <Grid item xs={12} sm={6} md={4}>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
           <StyledPaper>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
               <ProfileAvatar src={userData.profilePicture || 'https://source.unsplash.com/random/200x200/?portrait'} alt={userData.name} />
@@ -223,7 +226,7 @@ const ProfilePage = () => {
           </StyledPaper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={8}>
+        <Grid item xs={12} md={8}>
           <StyledPaper>
             {isEditing ? (
               <Box component="form">
@@ -346,10 +349,10 @@ const ProfilePage = () => {
                   <Grid item xs={12} sm={6} md={3}>
                     <TextField
                       fullWidth
-                      label="Diabetic BP (mmHg)"
-                      name="bloodPressureDiabetic"
+                      label="Diastolic BP (mmHg)"
+                      name="bloodPressureDiastolic"
                       type="number"
-                      value={editedData.bloodPressureDiabetic || ''}
+                      value={editedData.bloodPressureDiastolic || ''}
                       onChange={handleChange}
                       inputProps={{ min: 30, max: 150 }}
                     />
@@ -518,8 +521,8 @@ const ProfilePage = () => {
                       Blood Pressure
                     </Typography>
                     <Typography variant="body1">
-                      {userData.bloodPressure?.systolic && userData.bloodPressure?.diabetic 
-                        ? `${userData.bloodPressure.systolic}/${userData.bloodPressure.diabetic} mmHg`
+                      {userData.bloodPressure?.systolic && userData.bloodPressure?.diastolic 
+                        ? ${userData.bloodPressure.systolic}/${userData.bloodPressure.diastolic} mmHg
                         : 'Not set'}
                     </Typography>
                   </Grid>
@@ -529,7 +532,7 @@ const ProfilePage = () => {
                       Blood Glucose
                     </Typography>
                     <Typography variant="body1">
-                      {userData.bloodGlucose ? `${userData.bloodGlucose} mg/dL` : 'Not set'}
+                      {userData.bloodGlucose ? ${userData.bloodGlucose} mg/dL : 'Not set'}
                     </Typography>
                   </Grid>
 
