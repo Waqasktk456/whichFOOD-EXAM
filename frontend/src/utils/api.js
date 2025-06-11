@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://whichfood-backend-g7d4fjbth7gbgubz.centralindia-01.azurewebsites.net/', // Update to production URL if needed
+  baseURL: 'https://whichfood-backend-g7d4fjbth7gbgubz.centralindia-01.azurewebsites.net/api', // Update to production URL if needed
   headers: {
     'Content-Type': 'application/json',
   },
