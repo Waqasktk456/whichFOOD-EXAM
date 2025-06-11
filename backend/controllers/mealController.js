@@ -1,4 +1,4 @@
-require("dotenv").config();
+ require("dotenv").config();
 const asyncHandler = require("express-async-handler");
 const axios = require("axios"); // Keep axios if needed for other things, or remove if not
 const MealLog = require("../models/MealLog");
@@ -649,5 +649,3 @@ module.exports = {
   getMealStats,
   getFoodRecommendations  // Add this line
 };
-
-
