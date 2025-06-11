@@ -7,11 +7,7 @@ const path = require('path');
 
 // Initialize Express backend
 const app = express();
-const allowedOrigins = [
-  'https://lively-ground-052d78c10.6.azurestaticapps.net', // Frontend production URL
-  'http://localhost:3000', // For local development
-];
-app.use(cors);
+
 
 
 // Connect to Database
