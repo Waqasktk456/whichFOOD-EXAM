@@ -3,7 +3,7 @@ const asyncHandler = require("express-async-handler");
 const axios = require("axios");
 
 // USDA API Key
-const USDA_API_KEY = process.env.USDA_API_KEY;
+const USDA_API_KEY =Yy4TZKCcjarwrNEjsQdQJ6hKTeodQTU12ryuFNdO;
 const USDA_API_URL = "https://api.nal.usda.gov/fdc/v1";
 
 // Search food using USDA FoodData Central API
