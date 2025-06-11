@@ -52,7 +52,7 @@ const LoginPage = () => {
 
     try {
       // *** FIX 2: Use your 'api' instance with the relative path ***
-      const response = await api.post('/api/users/login', { // Corrected API call
+      const response = await api.post('/users/login', { // Corrected API call
         email,
         password,
       });
