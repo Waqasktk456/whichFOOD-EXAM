@@ -75,7 +75,7 @@ const AddMeasurementModal = ({ open, onClose, onMeasurementAdded }) => {
       };
 
       // Save to HealthMetric
-      await api.post('/api/health', requestData, {
+      await api.post('/health', requestData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -90,7 +90,7 @@ const AddMeasurementModal = ({ open, onClose, onMeasurementAdded }) => {
       }
 
       if (Object.keys(updateData).length > 0) {
-        await api.put('/api/users/profile', updateData, {
+        await api.put('/users/profile', updateData, {
           headers: { Authorization: `Bearer ${token}` },
         });
       }
