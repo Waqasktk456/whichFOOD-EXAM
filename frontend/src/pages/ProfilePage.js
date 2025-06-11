@@ -46,14 +46,14 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/users/profile', {
+        const response = await api.get('/users/meals', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserData(response.data);
         setEditedData({
           ...response.data,
           bloodPressureSystolic: response.data.bloodPressure?.systolic || '',
-          bloodPressureDiastolic: response.data.bloodPressure?.diastolic || '',
+          bloodPressureDiabetic: response.data.bloodPressure?.diabetic || '',
           bloodGlucose: response.data.bloodGlucose || '',
         });
       } catch (error) {
@@ -91,12 +91,12 @@ const ProfilePage = () => {
         ...editedData,
         bloodPressure: {
           systolic: editedData.bloodPressureSystolic ? Number(editedData.bloodPressureSystolic) : undefined,
-          diastolic: editedData.bloodPressureDiastolic ? Number(editedData.bloodPressureDiastolic) : undefined,
+          diabetic: editedData.bloodPressureDiabetic ? Number(editedData.bloodPressureDiabetic) : undefined,
         },
         bloodGlucose: editedData.bloodGlucose ? Number(editedData.bloodGlucose) : undefined,
       };
       delete requestData.bloodPressureSystolic;
-      delete requestData.bloodPressureDiastolic;
+      delete requestData.bloodPressureDiabetic;
 
       const response = await api.put('/users/profile', requestData, {
         headers: { Authorization: `Bearer ${token}` },
@@ -106,7 +106,7 @@ const ProfilePage = () => {
       setEditedData({
         ...response.data,
         bloodPressureSystolic: response.data.bloodPressure?.systolic || '',
-        bloodPressureDiastolic: response.data.bloodPressure?.diastolic || '',
+        bloodPressureDiabetic: response.data.bloodPressure?.diabetic || '',
         bloodGlucose: response.data.bloodGlucose || '',
       });
       setIsEditing(false);
@@ -128,7 +128,7 @@ const ProfilePage = () => {
     setEditedData({
       ...userData,
       bloodPressureSystolic: userData.bloodPressure?.systolic || '',
-      bloodPressureDiastolic: userData.bloodPressure?.diastolic || '',
+      bloodPressureDiabetic: userData.bloodPressure?.diabetic || '',
       bloodGlucose: userData.bloodGlucose || '',
     });
     setIsEditing(false);
@@ -155,8 +155,8 @@ const ProfilePage = () => {
         My Profile
       </Typography>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
+      <Grid container spacing={3} sx={{ flexWrap: 'wrap' }}>
+        <Grid item xs={12} sm={6} md={4}>
           <StyledPaper>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
               <ProfileAvatar src={userData.profilePicture || 'https://source.unsplash.com/random/200x200/?portrait'} alt={userData.name} />
@@ -223,7 +223,7 @@ const ProfilePage = () => {
           </StyledPaper>
         </Grid>
 
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} sm={6} md={8}>
           <StyledPaper>
             {isEditing ? (
               <Box component="form">
@@ -346,10 +346,10 @@ const ProfilePage = () => {
                   <Grid item xs={12} sm={6} md={3}>
                     <TextField
                       fullWidth
-                      label="Diastolic BP (mmHg)"
-                      name="bloodPressureDiastolic"
+                      label="Diabetic BP (mmHg)"
+                      name="bloodPressureDiabetic"
                       type="number"
-                      value={editedData.bloodPressureDiastolic || ''}
+                      value={editedData.bloodPressureDiabetic || ''}
                       onChange={handleChange}
                       inputProps={{ min: 30, max: 150 }}
                     />
@@ -518,8 +518,8 @@ const ProfilePage = () => {
                       Blood Pressure
                     </Typography>
                     <Typography variant="body1">
-                      {userData.bloodPressure?.systolic && userData.bloodPressure?.diastolic 
-                        ? `${userData.bloodPressure.systolic}/${userData.bloodPressure.diastolic} mmHg`
+                      {userData.bloodPressure?.systolic && userData.bloodPressure?.diabetic 
+                        ? `${userData.bloodPressure.systolic}/${userData.bloodPressure.diabetic} mmHg`
                         : 'Not set'}
                     </Typography>
                   </Grid>
