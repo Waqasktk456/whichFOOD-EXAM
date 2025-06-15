@@ -1,18 +1,12 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom'; // Keep this, it's correct
-import { Container, Typography, Box, Paper, TextField, Button, Avatar, InputAdornment,Grid , Snackbar, Alert } from '@mui/material';
+import { useNavigate, Link } from 'react-router-dom'; // Add Link import
+import { Container, Typography, Box, Paper, TextField, Button, Avatar, InputAdornment, Grid, Snackbar, Alert } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
-
-// *** FIX 1: Import your configured 'api' instance ***
-import api from '../utils/api'; // Assuming api.js is in src/utils/
-
+import api from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
-
-// *** REMOVE THIS LINE ENTIRELY (it's hardcoded and wrong) ***
-// const BACKEND_URL='whichfood-backend-g7d4fjbth7gbgubz.centralindia-01.azurewebsites.net'
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -36,12 +30,11 @@ const LoginPage = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const { login } = useContext(AuthContext);
-  const navigate = useNavigate(); // Correctly initialized
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     if (!email || !password) {
       setError('Please enter both email and password');
       setSnackbarMessage('Please enter both email and password');
@@ -51,31 +44,23 @@ const LoginPage = () => {
     }
 
     try {
-      // *** FIX 2: Use your 'api' instance with the relative path ***
-      const response = await api.post('/api/users/login', { // Corrected API call
+      const response = await api.post('/users/login', {
         email,
         password,
       });
 
-      // Store user data and token in context
       login(response.data, response.data.token);
-
-      // Show success message
       setSnackbarMessage('Login successful! Redirecting...');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
-
-      // Clear form and errors
       setEmail('');
       setPassword('');
       setError('');
 
-      // Redirect to profile page (already correctly using navigate)
       setTimeout(() => {
         navigate('/profile');
       }, 1500);
     } catch (error) {
-      // Handle API errors
       setError(error.response?.data?.message || 'Login failed. Please try again.');
       setSnackbarMessage(error.response?.data?.message || 'Login failed. Please try again.');
       setSnackbarSeverity('error');
@@ -157,10 +142,12 @@ const LoginPage = () => {
               </Button>
             </Grid>
             <Grid item>
-              {/* This Link is fine, it uses client-side routing */}
-              <Button variant="text" size="small" href="/register">
-                Don't have an account? Sign Up
-              </Button>
+              {/* FIX: Replace Button with Link for client-side routing */}
+              <Link to="/register" style={{ textDecoration: 'none' }}>
+                <Button variant="text" size="small">
+                  Don't have an account? Sign Up
+                </Button>
+              </Link>
             </Grid>
           </Grid>
         </Box>

@@ -140,9 +140,8 @@ const RegisterPage = () => {
 
       console.log('Sending requestData:', JSON.stringify(requestData, null, 2));
 
-      // *** FIX 2: Use your 'api' instance with the relative path ***
-      // REMOVE: const response = await axios.post('http://localhost:5000/api/users', requestData);
-      const response = await api.post('/api/users', requestData); // Corrected API call
+   
+      const response = await api.post('/users', requestData); // Corrected API call
 
       setSnackbarMessage('Registration successful! Redirecting to login...');
       setSnackbarSeverity('success');

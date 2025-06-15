@@ -80,7 +80,7 @@ const HealthDashboardPage = () => {
   // Fetch user profile
   const fetchUserProfile = useCallback(async () => {
     try {
-      const response = await api.get('/api/users/profile', {
+      const response = await api.get('/users/profile', {
         headers: { Authorization: `Bearer ${token}` },
       } );
       setUserProfile(response.data);
@@ -92,7 +92,7 @@ const HealthDashboardPage = () => {
   // Fetch stats for a single metric type
   const fetchStats = useCallback(async (metricType) => {
     try {
-      const response = await api.get('/api/health/stats', {
+      const response = await api.get('/health/stats', {
         params: { type: metricType, period: 'month' },
         headers: { Authorization: `Bearer ${token}` },
       } );
@@ -120,7 +120,7 @@ const HealthDashboardPage = () => {
   // Fetch initial metric value (earliest HealthMetric entry)
   const fetchInitialMetric = useCallback(async (metricType) => {
     try {
-      const response = await api.get('/api/health', {
+      const response = await api.get('/health', {
         params: { type: metricType },
         headers: { Authorization: `Bearer ${token}` },
       } );
