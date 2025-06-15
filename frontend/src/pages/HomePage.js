@@ -51,7 +51,7 @@ const HomePage = () => {
                 Your Personal Nutrition & Health Assistant
               </Typography>
               <Typography variant="body1" paragraph sx={{ mb: 4 }}>
-                Track your meals, monitor your health metrics, and get personalized food recommendations based on your unique profile and goals.
+                Track your meals, monitor your health metric, and get personalized food recommendations based on your unique profile and goals.
               </Typography>
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button 
@@ -76,7 +76,7 @@ const HomePage = () => {
             </Grid>
             <Grid item xs={12} md={6} sx={{ textAlign: 'center' }}>
               <img 
-                src="frontend\src\pages\images\Grilled Salmon.jpeg" 
+                src="GrilledSalmon.jpeg" 
                 alt="Healthy Food" 
                 style={{ maxWidth: '100%', borderRadius: '12px', boxShadow: '0 8px 16px rgba(0,0,0,0.2)' }}
               />
