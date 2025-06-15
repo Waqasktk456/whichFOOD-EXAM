@@ -76,7 +76,7 @@ const HomePage = () => {
             </Grid>
             <Grid item xs={12} md={6} sx={{ textAlign: 'center' }}>
               <img 
-                src="https://source.unsplash.com/random/600x400/?healthy-food" 
+                src="frontend\src\pages\images\Grilled Salmon.jpeg" 
                 alt="Healthy Food" 
                 style={{ maxWidth: '100%', borderRadius: '12px', boxShadow: '0 8px 16px rgba(0,0,0,0.2)' }}
               />
