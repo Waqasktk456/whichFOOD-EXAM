@@ -1,4 +1,4 @@
-everything is wroking perfectly now only issue in styling is thta in orofile page the second grid having personal diteray and helath information is hwpeimhg be;ow the prfile scetion i wnat both in a line import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Typography, Box, Paper, Grid, TextField, Button, Avatar, InputAdornment, MenuItem, Snackbar, Alert, Divider } from '@mui/material';
 import { styled } from '@mui/material/styles';
