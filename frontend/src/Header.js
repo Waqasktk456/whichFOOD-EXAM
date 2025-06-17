@@ -132,7 +132,7 @@ const Header = () => {
               to="/health"
               onClick={handleCloseNavMenu}
             >
-              Health Dashboard
+              Health 
             </NavButton>
             <NavButton
               component={Link}
