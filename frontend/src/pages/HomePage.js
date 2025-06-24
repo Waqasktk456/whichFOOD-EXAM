@@ -70,7 +70,7 @@ const HomePage = () => {
                   component={Link}
                   to="/login"
                 >
-                  Sign In
+                  Sign up
                 </Button>
               </Box>
             </Grid>
